@@ -2,12 +2,12 @@
   "extends": "@filo/typescript-config/nest",
   "compilerOptions": {
     "outDir": "./dist",
-    "baseUrl": "./",
+    "baseUrl": ".",
     "types": ["node", "jest"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "test/**/*", "eslint.config.js"],
+  "include": ["src", "test/**/*", "eslint.config.js"],
   "exclude": ["node_modules", "dist"]
 }

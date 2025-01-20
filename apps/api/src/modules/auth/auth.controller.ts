@@ -7,11 +7,6 @@ import { CurrentUser } from '@/commons/decorators/current-user.decorator';
 export class AuthController {
   @Get('me')
   async getProfile(@CurrentUser() user: User) {
-    return {
-      id: user.id,
-      email: user.emailAddresses[0].emailAddress,
-      firstName: user.firstName,
-      lastName: user.lastName
-    };
+    return user;
   }
 }

@@ -16,7 +16,7 @@ export default [
 
   // Default
   {
-    files: ['**/*.{js,mjs,cjs,jsx,ts,tsx}'],
+    files: ['**/*.{js,mjs,cjs,ts}'],
     languageOptions: {
       globals: globals.node,
       ecmaVersion: 'latest',
@@ -50,7 +50,7 @@ export default [
   // TypeScript
   ...tsEslint.configs.recommended,
   {
-    files: ['**/*.{ts,jsx,tsx}'],
+    files: ['**/*.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -150,7 +150,7 @@ export default [
           project: true
         },
         node: {
-          extensions: ['.mjs', '.js', '.jsx', '.ts', '.tsx']
+          extensions: ['.mjs', '.js', '.ts']
         }
       }
     }
