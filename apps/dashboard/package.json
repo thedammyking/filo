@@ -10,6 +10,7 @@
     "lint": "next lint --fix"
   },
   "dependencies": {
+    "@clerk/elements": "^0.22.12",
     "@clerk/nextjs": "^6.9.15",
     "@clerk/themes": "^2.2.9",
     "@filo/ui": "workspace:*",

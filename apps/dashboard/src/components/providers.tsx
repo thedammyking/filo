@@ -1,8 +1,9 @@
 'use client';
 import type * as React from 'react';
-import { ClerkProvider } from '@clerk/nextjs';
-import { dark } from '@clerk/themes';
+import { ClerkLoaded, ClerkLoading, ClerkProvider } from '@clerk/nextjs';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
+
+import DefaultLoader from '@/app/auth/login/[[...login]]/loading';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -19,11 +20,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
             logoPlacement: 'outside',
             shimmer: true,
             animations: true
-          },
-          baseTheme: dark
+          }
         }}
       >
-        {children}
+        <ClerkLoading>
+          <DefaultLoader />
+        </ClerkLoading>
+        <ClerkLoaded>{children}</ClerkLoaded>
       </ClerkProvider>
     </NextThemesProvider>
   );
