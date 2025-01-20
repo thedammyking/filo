@@ -1,6 +1,7 @@
 'use client';
-
 import type * as React from 'react';
+import { ClerkProvider } from '@clerk/nextjs';
+import { dark } from '@clerk/themes';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -12,7 +13,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
       enableColorScheme
     >
-      {children}
+      <ClerkProvider
+        appearance={{
+          layout: {
+            logoPlacement: 'outside',
+            shimmer: true,
+            animations: true
+          },
+          baseTheme: dark
+        }}
+      >
+        {children}
+      </ClerkProvider>
     </NextThemesProvider>
   );
 }

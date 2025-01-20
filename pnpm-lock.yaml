@@ -177,6 +177,12 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@clerk/nextjs':
+        specifier: ^6.9.15
+        version: 6.9.15(next@15.1.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(sass@1.83.4))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@clerk/themes':
+        specifier: ^2.2.9
+        version: 2.2.9
       '@filo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -632,6 +638,21 @@ packages:
     resolution: {integrity: sha512-KrcoHzuxsnsKzzf8c2i/VHMJlnfU8BfEPpuzNJEDVJRSFzIs81axVqXdhdOyzuSirjpBgMt4gGIjfJWQdPNAPQ==}
     engines: {node: '>=18.17.0'}
 
+  '@clerk/clerk-react@5.22.3':
+    resolution: {integrity: sha512-1RHH5W6UOMfmRq2sC1n1lVa12kHbmE6T2FfyHbSWOwcaUPJAxGDj3nakl4VJuDLHej9hXfsNjjUVCN5D2ybBBw==}
+    engines: {node: '>=18.17.0'}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0 || ^19.0.0-0
+      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-0
+
+  '@clerk/nextjs@6.9.15':
+    resolution: {integrity: sha512-eAtbtkLv8efGSgG6EuO38ipz7Vrjt6Z5GDfetXg7vhVZg8vbboffuHWiZni1bTnrxRKVFdT9NihjCfFLW1pcoQ==}
+    engines: {node: '>=18.17.0'}
+    peerDependencies:
+      next: ^13.5.4 || ^14.0.3 || ^15.0.0
+      react: ^18.0.0 || ^19.0.0 || ^19.0.0-0
+      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-0
+
   '@clerk/shared@2.20.11':
     resolution: {integrity: sha512-nUqDJuBSOhm1+7KslVr3vkIpc3bAJ1L0VOB4l9vH6igg8MqRz5EFtFjbp3ayNFtAL/DVxGZ3EeJA7JJ8L1zcWQ==}
     engines: {node: '>=18.17.0'}
@@ -643,6 +664,10 @@ packages:
         optional: true
       react-dom:
         optional: true
+
+  '@clerk/themes@2.2.9':
+    resolution: {integrity: sha512-vyv+ePK/hvYon1NZS9OtQM4zGPs+KpHWJpnJ2Ejh5/1sNSOodtfcnYm0SjAfuXFSPd973uWkIIN68b9xUocPaQ==}
+    engines: {node: '>=18.17.0'}
 
   '@clerk/types@4.41.2':
     resolution: {integrity: sha512-8hvNzyeSa2sENQ86jHXTSnGKfhr9OHcIcm4w7bU4pAhCqF2aLYi9AZGNY4nvBcS3zPw1e8OLMiRKi5qhZrdt+g==}
@@ -2306,6 +2331,9 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  crypto-js@4.2.0:
+    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
 
   css-functions-list@3.2.3:
     resolution: {integrity: sha512-IQOkD3hbR5KrN93MtcYuad6YPuTSUhntLHDuLEbFWE+ff2/XSZNdZG+LcbbIW5AXKg/WFIfYItIzVoHngHXZzA==}
@@ -4829,6 +4857,9 @@ packages:
     resolution: {integrity: sha512-A3We5UfEjG8Z7VkDv6uItWw6HY2bBSBJT1KtVESn6EOoOr2jAxNhxWCLY3jDE2WcuHXByWju74ck3ZgLwL8xmA==}
     engines: {node: '>= 18'}
 
+  server-only@0.0.1:
+    resolution: {integrity: sha512-qepMx2JxAa5jjfzxG79yPPq+8BuFToHd1hm7kI+Z4zAq1ftQiP7HcxMhDDItrbtwVeLg/cY2JnKnrcFkmiswNA==}
+
   set-function-length@1.2.2:
     resolution: {integrity: sha512-pgRc4hJ4/sNjWCSS9AmnS40x3bNMDTknHgL5UaMBTMyJnU90EgWh1Rz+MC9eFu4BuN/UwZjKQuY/1v3rM7HMfg==}
     engines: {node: '>= 0.4'}
@@ -6008,6 +6039,27 @@ snapshots:
       - react
       - react-dom
 
+  '@clerk/clerk-react@5.22.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      '@clerk/shared': 2.20.11(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@clerk/types': 4.41.2
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+      tslib: 2.4.1
+
+  '@clerk/nextjs@6.9.15(next@15.1.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(sass@1.83.4))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      '@clerk/backend': 1.23.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@clerk/clerk-react': 5.22.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@clerk/shared': 2.20.11(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@clerk/types': 4.41.2
+      crypto-js: 4.2.0
+      next: 15.1.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(sass@1.83.4)
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+      server-only: 0.0.1
+      tslib: 2.4.1
+
   '@clerk/shared@2.20.11(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       '@clerk/types': 4.41.2
@@ -6019,6 +6071,11 @@ snapshots:
     optionalDependencies:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
+
+  '@clerk/themes@2.2.9':
+    dependencies:
+      '@clerk/types': 4.41.2
+      tslib: 2.4.1
 
   '@clerk/types@4.41.2':
     dependencies:
@@ -7978,6 +8035,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  crypto-js@4.2.0: {}
 
   css-functions-list@3.2.3: {}
 
@@ -10878,6 +10937,8 @@ snapshots:
       send: 1.1.0
     transitivePeerDependencies:
       - supports-color
+
+  server-only@0.0.1: {}
 
   set-function-length@1.2.2:
     dependencies:
