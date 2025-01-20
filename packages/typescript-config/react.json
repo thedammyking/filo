@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": ["./base.json"],
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "target": "ES6",
+    "jsx": "react-jsx",
+    "types": ["react"]
+  },
+  "include": ["src", "eslintrc.config.js", "tailwind.config.ts"]
+}

@@ -1,0 +1,5 @@
+{
+  "{apps,packages/ui}/**/*.{js,ts,jsx,tsx}": ["eslint --fix --quiet", "prettier --write"],
+  "{apps,packages/ui}/**/*.{css,scss}": ["stylelint --fix --allow-empty-input", "prettier --write"],
+  "{apps,packages/ui}/**/*.{json,md,toml}": ["prettier --write"]
+}

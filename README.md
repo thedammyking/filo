@@ -1,31 +1,35 @@
-# shadcn/ui monorepo template
+# Filo apps
 
-This template is for creating a monorepo with shadcn/ui.
+This is a monorepo containing all filo applications, including the component library, dashboard and backend.
 
-## Usage
+## What's inside?
 
-```bash
-pnpm dlx shadcn@latest init
-```
+This monorepo includes the following packages and apps:
 
-## Adding components
+### Apps and Packages
 
-To add components to your app, run the following command at the root of your `web` app:
+- `dashboard`: a [Next.js](https://nextjs.org/) app
+- `@filo/ui`: a stub component & utility library shared by the `dashboard` application
+- `@filo/eslint-config`: shared `eslint` configurations
+- `@filo/typescript-config`: shared `tsconfig.json` used throughout the monorepo
+- `@filo/prettier-config`: shared `prettier` configuration
+- `@filo/stylelint-config`: shared `stylelint` configuration
+- `@filo/tailwind-config`: shared `Tailwind CSS` configuration
 
-```bash
-pnpm dlx shadcn@latest add button -c apps/web
-```
+Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
 
-This will place the ui components in the `packages/ui/src/components` directory.
+### Utilities
 
-## Tailwind
+This monorepo has some additional tools already setup for you:
 
-Your `tailwind.config.ts` and `globals.css` are already set up to use the components from the `ui` package.
-
-## Using components
-
-To use the components in your app, import them from the `ui` package.
-
-```tsx
-import { Button } from "@workspace/ui/components/ui/button"
-```
+- [TypeScript](https://www.typescriptlang.org/) for static type checking
+- [ESLint](https://eslint.org/) for code linting
+- [Prettier](https://prettier.io) for code formatting
+- [Stylelint](https://stylelint.io/) for CSS linting
+- [Tailwind CSS](https://tailwindcss.com/) for styling
+- [Sass](https://sass-lang.com/) for CSS pre-processing
+- [Husky](https://typicode.github.io/husky/) for Git hooks
+- [Lint-staged](https://github.com/okonet/lint-staged) for running linters on Git staged files
+- [Commitlint](https://commitlint.js.org/) for commit message linting
+- [Netlify](https://www.netlify.com/) for deployment
+- [Shadcn UI](https://ui.shadcn.com/) for UI components

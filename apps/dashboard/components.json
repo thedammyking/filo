@@ -4,17 +4,17 @@
   "rsc": true,
   "tsx": true,
   "tailwind": {
-    "config": "../tailwind-config/index.ts",
-    "css": "../tailwind-config/styles.scss",
+    "config": "../../packages/tailwind-config/tailwind.config.ts",
+    "css": "../../packages/tailwind-config/styles.scss",
     "baseColor": "neutral",
     "cssVariables": true
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@filo/ui/components",
+    "components": "@/components",
+    "hooks": "@/hooks",
+    "lib": "@/lib",
     "utils": "@filo/ui/lib/utils",
-    "hooks": "@filo/ui/hooks",
-    "lib": "@filo/ui/lib",
     "ui": "@filo/ui/components"
   }
 }
