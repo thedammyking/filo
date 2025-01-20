@@ -1,6 +1,7 @@
 import { Figtree } from 'next/font/google';
 
 import { Providers } from '@/components/providers';
+import ThemeSwitcher from '@/components/theme-switcher';
 
 import '../styles/main.scss';
 import '@filo/tailwind-config/styles.scss';
@@ -20,7 +21,10 @@ export default function RootLayout({
   return (
     <html lang='en' suppressHydrationWarning>
       <body className={`${fontSans.variable} font-sans antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <ThemeSwitcher />
+        </Providers>
       </body>
     </html>
   );
