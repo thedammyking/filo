@@ -1,15 +1,16 @@
 {
-	"name": "@filo/typescript-config",
-	"version": "0.0.0",
-	"private": true,
-	"license": "MIT",
-	"type": "module",
-	"exports": {
-		".": "./base.json",
-		"./react": "./react.json",
-		"./next": "./nextjs.json"
-	},
-	"publishConfig": {
-		"access": "public"
-	}
+  "name": "@filo/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./base.json",
+    "./react": "./react.json",
+    "./next": "./nextjs.json",
+    "./nest": "./nestjs.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
