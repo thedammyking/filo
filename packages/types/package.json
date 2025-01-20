@@ -1,0 +1,14 @@
+{
+  "name": "@filo/types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "devDependencies": {
+    "@clerk/backend": "^1.23.4",
+    "@filo/eslint-config": "workspace:*",
+    "@filo/typescript-config": "workspace:*"
+  }
+}

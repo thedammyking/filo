@@ -105,6 +105,9 @@ importers:
       '@filo/prettier-config':
         specifier: workspace:*
         version: link:../../packages/prettier-config
+      '@filo/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@filo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -334,6 +337,18 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.10.7)(typescript@5.7.3)))
+
+  packages/types:
+    devDependencies:
+      '@clerk/backend':
+        specifier: ^1.23.4
+        version: 1.23.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@filo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@filo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
 
   packages/typescript-config: {}
 

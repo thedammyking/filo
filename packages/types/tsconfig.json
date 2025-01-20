@@ -1,0 +1,5 @@
+{
+  "extends": "@filo/typescript-config",
+  "include": ["."],
+  "exclude": ["dist", "build", "node_modules"]
+}

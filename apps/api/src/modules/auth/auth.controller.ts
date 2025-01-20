@@ -1,4 +1,4 @@
-import { User } from '@clerk/backend';
+import { User } from '@filo/types';
 import { Controller, Get } from '@nestjs/common';
 
 import { CurrentUser } from '@/commons/decorators/current-user.decorator';
