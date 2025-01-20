@@ -7,8 +7,8 @@ const config: Omit<Config, 'content'> = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-sans)', ...fontFamily.sans],
-        mono: ['var(--font-mono)', ...fontFamily.mono]
+        ...fontFamily,
+        sans: ['var(--font-sans)', ...fontFamily.sans]
       },
       colors: {
         border: 'hsl(var(--border))',
