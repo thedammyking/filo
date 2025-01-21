@@ -38,10 +38,19 @@ The system is designed with a modular and extensible architecture to support fil
 1. **GET** `/tasks/{task_id}`: Get the status of a specific task.
 2. **GET** `/tasks`: List all tasks for the user.
 
-### Cloud Integration Management
+### Storage Provider Management
 
-1. **GET** `/cloud-providers`: List available cloud providers.
-2. **POST** `/cloud-providers/connect`: Connect a cloud provider via OAuth.
-3. **DELETE** `/cloud-providers/{provider}`: Disconnect a cloud provider.
+1. **GET** `/storage/providers`: List available storage providers.
+2. **GET** `/storage/{provider}/connect`: Get OAuth URL for a storage provider.
+3. **GET** `/storage/{provider}/callback`: Handle OAuth callback.
+4. **GET** `/storage/{provider}/files`: List files in a storage provider.
 
 ---
+
+## Storage Provider Design
+
+### Google Drive
+
+1. **GET** `/storage/providers/GOOGLE_DRIVE/connect`: Get OAuth URL for Google Drive.
+2. **GET** `/storage/providers/GOOGLE_DRIVE/callback`: Handle OAuth callback.
+3. **GET** `/storage/providers/GOOGLE_DRIVE/files`: List files in Google Drive.

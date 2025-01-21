@@ -15,7 +15,7 @@ export class StorageController {
     return Object.values(StorageProvider);
   }
 
-  @Get(':provider/auth')
+  @Get(':provider/connect')
   async getAuthUrl(@Param('provider') provider: StorageProvider) {
     const storageProvider = this.storageService.getProvider(provider);
     return { url: await storageProvider.getAuthUrl() };
@@ -34,7 +34,7 @@ export class StorageController {
   @Get(':provider/files')
   async listFiles(@Param('provider') provider: StorageProvider, @CurrentUser() user: User) {
     const storageProvider = this.storageService.getProvider(provider);
-    const client = await storageProvider.getClient(user.id);
+    const client = await storageProvider.getStorageClient(user.id);
     const response = await client.files.list({
       pageSize: 10,
       fields: 'nextPageToken, files(id, name)'

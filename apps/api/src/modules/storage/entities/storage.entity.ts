@@ -2,16 +2,21 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  PrimaryColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from 'typeorm';
 
+import { generatePrefixedUUID } from '@/lib/utils';
 import { StorageProvider } from '../constants/storage-provider.enum';
 
-@Entity('storage_tokens')
-export class StorageToken {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+@Entity('storage')
+export class Storage {
+  @PrimaryColumn({
+    name: 'id',
+    unique: true
+  })
+  id: string = generatePrefixedUUID('storage');
 
   @Column({ name: 'user_id' })
   userId: string;

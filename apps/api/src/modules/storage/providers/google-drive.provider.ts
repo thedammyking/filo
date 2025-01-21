@@ -5,7 +5,7 @@ import { google } from 'googleapis';
 import { Repository } from 'typeorm';
 
 import { StorageProvider } from '../constants/storage-provider.enum';
-import { StorageToken } from '../entities/storage-token.entity';
+import { Storage } from '../entities/storage.entity';
 import { IStorageProvider, StorageTokens } from '../interfaces/storage-provider.interface';
 
 @Injectable()
@@ -14,8 +14,8 @@ export class GoogleDriveProvider implements IStorageProvider {
 
   constructor(
     private configService: ConfigService,
-    @InjectRepository(StorageToken)
-    private tokenRepository: Repository<StorageToken>
+    @InjectRepository(Storage)
+    private storageRepository: Repository<Storage>
   ) {
     this.oauth2Client = new google.auth.OAuth2(
       this.configService.get('GOOGLE_CLIENT_ID'),
@@ -40,79 +40,79 @@ export class GoogleDriveProvider implements IStorageProvider {
   async getTokens(code: string, userId: string): Promise<StorageTokens> {
     try {
       const { tokens } = await this.oauth2Client.getToken(code);
-      await this.saveTokens(userId, tokens);
+      await this.saveStorage(userId, tokens);
       return tokens;
     } catch (error) {
       throw new UnauthorizedException('Failed to get Google tokens');
     }
   }
 
-  private async saveTokens(userId: string, tokens: StorageTokens) {
-    const existingToken = await this.tokenRepository.findOne({
+  private async saveStorage(userId: string, tokens: StorageTokens) {
+    let storage = await this.storageRepository.findOne({
       where: {
         userId,
         provider: StorageProvider.GOOGLE_DRIVE
       }
     });
 
-    if (existingToken) {
-      await this.tokenRepository.update(existingToken.id, {
+    if (storage) {
+      Object.assign(storage, {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiryDate: tokens.expiry_date
       });
     } else {
-      const newToken = this.tokenRepository.create({
+      storage = this.storageRepository.create({
         userId,
         provider: StorageProvider.GOOGLE_DRIVE,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiryDate: tokens.expiry_date
       });
-      await this.tokenRepository.save(newToken);
     }
+    await this.storageRepository.save(storage);
   }
 
   async refreshAccessToken(userId: string): Promise<StorageTokens> {
-    const storedToken = await this.tokenRepository.findOne({
+    const storage = await this.storageRepository.findOne({
       where: {
         userId,
         provider: StorageProvider.GOOGLE_DRIVE
       }
     });
 
-    if (!storedToken?.refreshToken) {
+    if (!storage?.refreshToken) {
       throw new UnauthorizedException('No refresh token found');
     }
 
     try {
       this.oauth2Client.setCredentials({
-        refresh_token: storedToken.refreshToken
+        refresh_token: storage.refreshToken
       });
       const { credentials } = await this.oauth2Client.refreshAccessToken();
-      await this.saveTokens(userId, credentials);
+      await this.saveStorage(userId, credentials);
       return credentials;
     } catch (error) {
       throw new UnauthorizedException('Failed to refresh access token');
     }
   }
 
-  async getClient(userId: string) {
-    const storedToken = await this.tokenRepository.findOne({
+  async getStorageClient(userId: string) {
+    const storage = await this.storageRepository.findOne({
       where: {
         userId,
         provider: StorageProvider.GOOGLE_DRIVE
       }
     });
 
-    if (!storedToken) {
+    if (!storage) {
       throw new UnauthorizedException('No tokens found for this user');
     }
 
     const tokens = {
-      access_token: storedToken.accessToken,
-      refresh_token: storedToken.refreshToken,
-      expiry_date: storedToken.expiryDate
+      access_token: storage.accessToken,
+      refresh_token: storage.refreshToken,
+      expiry_date: storage.expiryDate
     };
 
     if (tokens.expiry_date && Date.now() > tokens.expiry_date) {
