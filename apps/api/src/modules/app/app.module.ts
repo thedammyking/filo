@@ -6,11 +6,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ClerkClientProvider } from '@/commons/providers/clerk-client.provider';
 
-import { AuthModule } from '../auth/auth.module';
-import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
-import { UsersModule } from '../users/users.module';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { ClerkAuthGuard } from '@/modules/auth/clerk-auth.guard';
+import { UsersModule } from '@/modules/users/users.module';
 
 import { AppController } from './app.controller';
+import { TasksModule } from '@/modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -40,7 +41,8 @@ import { AppController } from './app.controller';
       ]
     }),
     UsersModule,
-    AuthModule
+    AuthModule,
+    TasksModule
   ],
   providers: [
     { provide: APP_PIPE, useValue: new ValidationPipe({ whitelist: true }) },

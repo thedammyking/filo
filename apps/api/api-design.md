@@ -2,7 +2,7 @@
 
 ## Architecture Design
 
-The system is designed with a modular and extensible architecture to support file uploads (URLs, torrents/magnet links) and integration with multiple cloud storage providers.
+The system is designed with a modular and extensible architecture to support file uploads (via URLs, torrents/magnet links) and integration with multiple cloud storage providers.
 
 ### Component Diagram
 
