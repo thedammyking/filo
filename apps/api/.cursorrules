@@ -32,37 +32,18 @@ For this project, follow these specific rules:
     - Abstract integrations with Google Drive, Dropbox, and other providers.
     - Use a factory pattern to add new providers easily.
 
-### Frontend Design (React.js)
-- Use React components with hooks to manage state and lifecycle.
-- Implement forms for:
-  - Local file uploads.
-  - URL and torrent/magnet link submissions.
-  - Cloud provider connections.
-- Use Axios to communicate with the backend and manage API calls.
 
-### API Design
+### API Design (NestJS)
 - Return consistent HTTP status codes and JSON responses:
   - 200 for success.
   - 400 for bad requests with detailed error messages.
   - 500 for internal server errors with meaningful logs.
 - Implement pagination and filtering for task listing endpoints.
 
-### Database Design
+### Database Design (TypeOrm)
 - Use PostgreSQL with TypeORM for schema management:
-  - Create entities for `users`, `tasks`, and `cloud_providers`.
+  - Create entities for `uploads`, `tasks`, and `cloud_providers`.
   - Use Redis for caching frequently accessed data, such as task progress.
-- Example schema for tasks:
-  ```sql
-  CREATE TABLE tasks (
-      id SERIAL PRIMARY KEY,
-      user_id INT REFERENCES users(id),
-      provider VARCHAR(50),
-      file_name VARCHAR(255),
-      file_url TEXT,
-      status VARCHAR(20),
-      progress INT DEFAULT 0
-  );
-  ```
 
 ### Streaming Uploads
 - Use Axios to stream files directly from URLs or torrents to cloud providers.
