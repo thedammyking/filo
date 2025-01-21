@@ -24,16 +24,19 @@ export class GoogleDriveProvider implements IStorageProvider {
     );
   }
 
-  getAuthUrl(): string {
+  getAuthUrl(userId: string): string {
     const scopes = [
       'https://www.googleapis.com/auth/drive.file',
       'https://www.googleapis.com/auth/drive.metadata.readonly'
     ];
 
+    const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
+
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
-      prompt: 'consent'
+      prompt: 'consent',
+      state
     });
   }
 
@@ -43,6 +46,7 @@ export class GoogleDriveProvider implements IStorageProvider {
       await this.saveStorage(userId, tokens);
       return tokens;
     } catch (error) {
+      console.log(error);
       throw new UnauthorizedException('Failed to get Google tokens');
     }
   }

@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn
@@ -9,15 +10,11 @@ import {
 
 import { generatePrefixedUUID } from '@/lib/utils';
 import { StorageProvider } from '../constants/storage-provider.enum';
+import { BaseEntity } from '@/commons/entities/base.entity';
 
 @Entity('storage')
-export class Storage {
-  @PrimaryColumn({
-    name: 'id',
-    unique: true
-  })
-  id: string = generatePrefixedUUID('storage');
-
+@Index('IDX_STORAGE_USER_PROVIDER', ['userId', 'provider'], { unique: true })
+export class Storage extends BaseEntity {
   @Column({ name: 'user_id' })
   userId: string;
 
@@ -36,10 +33,4 @@ export class Storage {
 
   @Column({ name: 'expiry_date', type: 'bigint', nullable: true })
   expiryDate: number;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }

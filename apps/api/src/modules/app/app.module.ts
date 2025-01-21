@@ -24,12 +24,10 @@ import { CatchEverythingFilter } from '@/commons/filters/catch-everything.filter
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: config.get('DB_PORT'),
-        username: config.get('DB_USERNAME'),
-        password: config.get('DB_PASSWORD'),
-        database: config.get('DB_DATABASE'),
-        entities: [__dirname + '/../**/*.entity.ts']
+        url: config.get('DATABASE_URL'),
+        entities: [__dirname + '/../**/*.entity.ts'],
+        autoLoadEntities: true,
+        synchronize: false
       })
     }),
     ThrottlerModule.forRootAsync({
