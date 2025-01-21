@@ -32,7 +32,6 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
 
       return user;
     } catch (error) {
-      console.error(error);
       throw new UnauthorizedException('Invalid token');
     }
   }
