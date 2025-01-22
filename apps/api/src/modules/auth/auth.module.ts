@@ -4,8 +4,8 @@ import { PassportModule } from '@nestjs/passport';
 
 import { UsersModule } from '@/modules/users/users.module';
 
+import { ClerkStrategy } from './strategies/clerk.strategy';
 import { AuthController } from './auth.controller';
-import { ClerkStrategy } from './clerk.strategy';
 
 @Module({
   controllers: [AuthController],

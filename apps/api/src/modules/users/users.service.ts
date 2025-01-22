@@ -1,7 +1,6 @@
 import { ClerkClient } from '@clerk/backend';
-import { Inject, Injectable } from '@nestjs/common';
-
 import { CreateUserParams, UpdateUserParams, UserListParams } from '@filo/types';
+import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {

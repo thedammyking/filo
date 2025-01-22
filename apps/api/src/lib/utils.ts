@@ -1,7 +1,7 @@
 import { uid } from 'uid/secure';
 
 export const generatePrefixedUUID = (prefix: string = ''): string => {
-  return prefixText(uid(25), prefix);
+  return prefixText(uid(27), prefix);
 };
 
 export const prefixText = (text: string, prefix: string = '', separator: string = '_'): string => {
