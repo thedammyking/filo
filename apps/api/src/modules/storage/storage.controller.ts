@@ -1,5 +1,5 @@
 import type { User } from '@filo/types';
-import { Controller, Get, Param, Query, Res, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res } from '@nestjs/common';
 
 import { CurrentUser } from '@/commons/decorators/current-user.decorator';
 
@@ -18,31 +18,21 @@ export class StorageController {
   }
 
   @Get(':provider/connect')
-  async getAuthUrl(@Param('provider') provider: StorageProvider, @CurrentUser() user: User) {
+  async getAuthUrl(@Param('provider') provider: StorageProvider) {
     const storageProvider = this.storageService.getProvider(provider);
-    return { url: await storageProvider.getAuthUrl(user.id) };
+    return { url: await storageProvider.getAuthUrl() };
   }
 
-  @Public()
   @Get(':provider/callback')
   async handleCallback(
     @Param('provider') provider: StorageProvider,
     @Query('code') code: string,
-    @Query('state') state: string,
+    @CurrentUser() user: User,
     @Res() res: Response
   ) {
-    try {
-      const { userId } = JSON.parse(Buffer.from(state, 'base64').toString());
-      if (!userId) {
-        throw new UnauthorizedException('Invalid state parameter');
-      }
-
-      const storageProvider = this.storageService.getProvider(provider);
-      await storageProvider.getTokens(code, userId);
-      res.status(302).redirect('http://localhost:3000/');
-    } catch (error) {
-      res.status(302).redirect('http://localhost:3000/error?message=Authentication failed');
-    }
+    const storageProvider = this.storageService.getProvider(provider);
+    await storageProvider.getTokens(code, user.id);
+    res.status(200).json({ message: 'Authentication successful' });
   }
 
   @Get(':provider/files')

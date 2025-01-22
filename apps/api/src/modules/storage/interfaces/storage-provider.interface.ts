@@ -5,7 +5,7 @@ export interface StorageTokens {
 }
 
 export interface IStorageProvider {
-  getAuthUrl(userId: string): string | Promise<string>;
+  getAuthUrl(): string | Promise<string>;
   getTokens(code: string, userId: string): Promise<StorageTokens>;
   refreshAccessToken(userId: string): Promise<StorageTokens>;
   getStorageClient(userId: string): Promise<any>;

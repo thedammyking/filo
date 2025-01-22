@@ -24,19 +24,18 @@ export class GoogleDriveProvider implements IStorageProvider {
     );
   }
 
-  getAuthUrl(userId: string): string {
+  getAuthUrl(): string {
     const scopes = [
       'https://www.googleapis.com/auth/drive.file',
       'https://www.googleapis.com/auth/drive.metadata.readonly'
     ];
 
-    const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
-
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent',
-      state
+      include_granted_scopes: true,
+      response_type: 'code'
     });
   }
 
