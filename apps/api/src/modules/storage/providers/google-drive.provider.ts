@@ -5,10 +5,18 @@ import { google } from 'googleapis';
 import { Repository, LessThan } from 'typeorm';
 import { addDays } from 'date-fns';
 
-import { StorageProvider } from '../constants/storage-provider.enum';
+import { STORAGE_PROVIDER } from '@filo/libs/constants';
+
 import { Storage } from '../entities/storage.entity';
-import { IStorageProvider, StorageTokens } from '../interfaces/storage-provider.interface';
+import { IStorageProvider } from '@filo/interfaces';
 import { GoogleDriveException } from '../exceptions/google-drive.exception';
+import type {
+  GetAuthUrlResponse,
+  RemoveConnectionResponse,
+  SaveStorageTokensResponse,
+  StorageClient,
+  StorageTokens
+} from '@filo/interfaces';
 
 // Add custom exceptions at the top
 
@@ -31,26 +39,28 @@ export class GoogleDriveProvider implements IStorageProvider {
     );
   }
 
-  getAuthUrl(): string {
+  getAuthUrl(): GetAuthUrlResponse {
     const scopes = [
       'https://www.googleapis.com/auth/drive.file',
       'https://www.googleapis.com/auth/drive.metadata.readonly'
     ];
 
-    return this.oauth2Client.generateAuthUrl({
+    const url = this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent',
       include_granted_scopes: true,
       response_type: 'code'
     });
+
+    return { url };
   }
 
-  async getTokens(code: string, userId: string): Promise<StorageTokens> {
+  async saveStorageTokens(code: string, userId: string): Promise<SaveStorageTokensResponse> {
     try {
       const { tokens } = await this.oauth2Client.getToken(code);
       await this.saveStorage(userId, tokens);
-      return tokens;
+      return { success: true };
     } catch (error) {
       throw new UnauthorizedException('Failed to get Google tokens');
     }
@@ -61,7 +71,7 @@ export class GoogleDriveProvider implements IStorageProvider {
       let storage = await this.storageRepository.findOne({
         where: {
           userId,
-          provider: StorageProvider.GOOGLE_DRIVE
+          provider: STORAGE_PROVIDER.GOOGLE_DRIVE
         }
       });
 
@@ -81,10 +91,11 @@ export class GoogleDriveProvider implements IStorageProvider {
       } else {
         storage = this.storageRepository.create({
           userId,
-          provider: StorageProvider.GOOGLE_DRIVE,
+          provider: STORAGE_PROVIDER.GOOGLE_DRIVE,
           ...updates
         });
       }
+
       await this.storageRepository.save(storage);
     } catch (error) {
       this.logger.error('Failed to save storage tokens', {
@@ -102,14 +113,14 @@ export class GoogleDriveProvider implements IStorageProvider {
     });
   }
 
-  async getStorageClient(userId: string) {
+  async getStorageClient(userId: string): Promise<StorageClient> {
     // Clean up expired tokens first
     await this.cleanupExpiredTokens();
 
     const storage = await this.storageRepository.findOne({
       where: {
         userId,
-        provider: StorageProvider.GOOGLE_DRIVE
+        provider: STORAGE_PROVIDER.GOOGLE_DRIVE
       }
     });
 
@@ -155,7 +166,7 @@ export class GoogleDriveProvider implements IStorageProvider {
       const storage = await this.storageRepository.findOne({
         where: {
           userId,
-          provider: StorageProvider.GOOGLE_DRIVE
+          provider: STORAGE_PROVIDER.GOOGLE_DRIVE
         }
       });
 
@@ -200,7 +211,7 @@ export class GoogleDriveProvider implements IStorageProvider {
     const storage = await this.storageRepository.findOne({
       where: {
         userId,
-        provider: StorageProvider.GOOGLE_DRIVE
+        provider: STORAGE_PROVIDER.GOOGLE_DRIVE
       }
     });
     if (storage) await this.storageRepository.remove(storage);
@@ -219,11 +230,11 @@ export class GoogleDriveProvider implements IStorageProvider {
     }
   }
 
-  async removeConnection(userId: string): Promise<void> {
+  async removeConnection(userId: string): Promise<RemoveConnectionResponse> {
     const storage = await this.storageRepository.findOne({
       where: {
         userId,
-        provider: StorageProvider.GOOGLE_DRIVE
+        provider: STORAGE_PROVIDER.GOOGLE_DRIVE
       }
     });
 
@@ -252,12 +263,13 @@ export class GoogleDriveProvider implements IStorageProvider {
 
     // Remove storage record
     await this.storageRepository.remove(storage);
+    return { success: true };
   }
 
   async checkConnection(userId: string) {
     const storage = await this.storageRepository.findOne({
-      where: { userId, provider: StorageProvider.GOOGLE_DRIVE }
+      where: { userId, provider: STORAGE_PROVIDER.GOOGLE_DRIVE }
     });
-    return !!storage;
+    return { connected: !!storage };
   }
 }

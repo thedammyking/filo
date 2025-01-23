@@ -1,0 +1,13 @@
+{
+  "name": "@filo/libs",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./constants": "./constants.ts"
+  },
+  "devDependencies": {
+    "@clerk/backend": "^1.23.4",
+    "@filo/eslint-config": "workspace:*",
+    "@filo/typescript-config": "workspace:*"
+  }
+}

@@ -1,0 +1,60 @@
+import type { ClerkClient } from '@clerk/backend';
+import type { STORAGE_PROVIDER } from '@filo/libs/constants';
+import type { google } from 'googleapis';
+
+export type { User } from '@clerk/backend';
+
+export type UserListParams = Parameters<ClerkClient['users']['getUserList']>[0];
+
+export type UpdateUserParams = Parameters<ClerkClient['users']['updateUser']>[1];
+
+export type CreateUserParams = Parameters<ClerkClient['users']['createUser']>[0];
+
+export interface ServerResponse<T> {
+  status: boolean;
+  statusCode: number;
+  path: string;
+  message?: string;
+  data: T;
+  timestamp: string;
+  stack?: string;
+}
+
+export interface StorageTokens {
+  access_token: string;
+  refresh_token?: string;
+  expiry_date?: number;
+}
+
+export interface GetAuthUrlResponse {
+  url: string;
+}
+
+export interface SaveStorageTokensResponse {
+  success: boolean;
+}
+
+export type StorageClient = ReturnType<typeof google.drive>;
+
+export interface CheckConnectionResponse {
+  connected: boolean;
+}
+
+export interface RemoveConnectionResponse {
+  success: boolean;
+}
+
+export interface IStorageProvider {
+  getAuthUrl(): GetAuthUrlResponse | Promise<GetAuthUrlResponse>;
+  saveStorageTokens(code: string, userId: string): Promise<SaveStorageTokensResponse>;
+  refreshAccessToken(userId: string): Promise<StorageTokens>;
+  getStorageClient(userId: string): Promise<StorageClient>;
+  removeConnection(userId: string): Promise<RemoveConnectionResponse>;
+  checkConnection(userId: string): Promise<CheckConnectionResponse>;
+}
+
+export interface WithData<T> {
+  data: T;
+}
+
+export type StorageProvider = (typeof STORAGE_PROVIDER)[keyof typeof STORAGE_PROVIDER];

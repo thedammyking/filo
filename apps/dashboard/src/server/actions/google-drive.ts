@@ -1,113 +1,74 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import type {
+  CheckConnectionResponse,
+  GetAuthUrlResponse,
+  RemoveConnectionResponse,
+  SaveStorageTokensResponse
+} from '@filo/interfaces';
+import { STORAGE_PROVIDER } from '@filo/libs/constants';
+import { z } from 'zod';
 
-export async function getGoogleAuthUrl() {
-  try {
-    const { userId, getToken } = await auth();
+import { authedProcedure } from '../procedures/auth';
+import {
+  checkStorageProviderConnection,
+  connectStorageProvider,
+  disconnectStorageProvider,
+  storageAuthCallback
+} from '../services/storage-provider';
 
-    if (!userId) {
-      return { error: 'User not found' };
+export const getGoogleDriveAuthUrl = authedProcedure
+  .createServerAction()
+  .handler(async ({ ctx }): Promise<GetAuthUrlResponse> => {
+    const { token } = ctx;
+    try {
+      const response = await connectStorageProvider(STORAGE_PROVIDER.GOOGLE_DRIVE, token);
+      const { data } = await response.json();
+      return data;
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to get auth URL');
     }
+  });
 
-    const token = await getToken();
+export const googleDriveAuthCallback = authedProcedure
+  .createServerAction()
+  .input(z.object({ code: z.string() }))
+  .handler(async ({ ctx, input }): Promise<SaveStorageTokensResponse> => {
+    const { token } = ctx;
+    const { code } = input;
+    console.log('googleDriveAuthCallback', code, token);
+    try {
+      const response = await storageAuthCallback(STORAGE_PROVIDER.GOOGLE_DRIVE, code, token);
 
-    const response = await fetch(`${process.env.API_URL}/storage/GOOGLE_DRIVE/connect`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    const data = await response.json();
-
-    return { url: data.data.url };
-  } catch (error: any) {
-    return { error: error.message || 'Failed to get auth URL' };
-  }
-}
-
-export async function completeGoogleAuth(code: string, state: string) {
-  try {
-    console.log('completeGoogleAuth', code, state);
-    const { userId, getToken } = await auth();
-    if (!userId) {
-      return { error: 'User not found' };
+      const data = await response.json();
+      return data;
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to get auth URL');
     }
-    const token = await getToken();
-    const response = await fetch(
-      `${process.env.API_URL}/storage/GOOGLE_DRIVE/callback?code=${code}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+  });
 
-    console.log('response', response);
-
-    if (!response.ok) {
-      throw new Error('Failed to complete authentication');
+export const checkGoogleDriveConnection = authedProcedure
+  .createServerAction()
+  .handler(async ({ ctx }): Promise<CheckConnectionResponse> => {
+    const { token } = ctx;
+    try {
+      const response = await checkStorageProviderConnection(STORAGE_PROVIDER.GOOGLE_DRIVE, token);
+      const { data } = await response.json();
+      return data as { connected: boolean };
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to check Google Drive connection');
     }
+  });
 
-    const data = await response.json();
-    return { success: true, data };
-  } catch (error) {
-    return { error: 'Failed to complete authentication' };
-  }
-}
-
-export async function checkGoogleDriveConnection() {
-  try {
-    const { userId, getToken } = await auth();
-    if (!userId) {
-      return { error: 'User not found' };
+export const disconnectGoogleDrive = authedProcedure
+  .createServerAction()
+  .handler(async ({ ctx }): Promise<RemoveConnectionResponse> => {
+    const { token } = ctx;
+    try {
+      const response = await disconnectStorageProvider(STORAGE_PROVIDER.GOOGLE_DRIVE, token);
+      const { data } = await response.json();
+      return data;
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to disconnect from Google Drive');
     }
-
-    const token = await getToken();
-    const response = await fetch(`${process.env.API_URL}/storage/GOOGLE_DRIVE/connection`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      return { connected: false };
-    }
-
-    const { data } = await response.json();
-
-    return { connected: data.connected };
-  } catch (error) {
-    return { connected: false };
-  }
-}
-
-export async function disconnectGoogleDrive() {
-  try {
-    const { userId, getToken } = await auth();
-
-    if (!userId) {
-      return { error: 'User not found' };
-    }
-    const token = await getToken();
-    const response = await fetch(`${process.env.API_URL}/storage/GOOGLE_DRIVE/connection`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      return { error: 'Failed to disconnect from Google Drive' };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return { error: 'Failed to disconnect from Google Drive' };
-  }
-}
+  });

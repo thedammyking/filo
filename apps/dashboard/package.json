@@ -14,11 +14,15 @@
     "@clerk/nextjs": "^6.9.15",
     "@clerk/themes": "^2.2.9",
     "@filo/ui": "workspace:*",
+    "@t3-oss/env-nextjs": "^0.11.1",
     "lucide-react": "0.473.0",
     "next": "^15.1.5",
     "next-themes": "^0.4.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.1",
+    "zsa": "^0.6.0",
+    "zsa-react": "^0.2.3"
   },
   "devDependencies": {
     "@filo/eslint-config": "workspace:^",
@@ -26,6 +30,8 @@
     "@filo/stylelint-config": "workspace:*",
     "@filo/tailwind-config": "workspace:*",
     "@filo/typescript-config": "workspace:*",
+    "@filo/interfaces": "workspace:*",
+    "@filo/libs": "workspace:*",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",

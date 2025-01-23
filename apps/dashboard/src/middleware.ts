@@ -1,12 +1,20 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
+import { env } from './evn';
+
 const isPublicRoute = createRouteMatcher(['/auth/login(.*)', '/auth/signup(.*)']);
+const isOnboardingRoute = createRouteMatcher(['/onboarding']);
 
 export default clerkMiddleware(async (auth, request) => {
-  const { userId } = await auth();
-  if (userId && isPublicRoute(request)) {
-    return NextResponse.redirect(new URL('/', request.url));
+  const { userId, sessionClaims } = await auth();
+  const onboardingComplete = sessionClaims?.metadata?.onboardingComplete;
+
+  if (userId) {
+    // if (isPublicRoute(request) || (isOnboardingRoute(request) && onboardingComplete))
+    if (isPublicRoute(request)) return NextResponse.redirect(new URL('/', request.url));
+    // if (isOnboardingRoute(request) && !onboardingComplete) return NextResponse.next();
+    // if (!onboardingComplete) return NextResponse.redirect(new URL('/onboarding', request.url));
   }
 
   if (!userId && !isPublicRoute(request)) {
@@ -20,7 +28,7 @@ export default clerkMiddleware(async (auth, request) => {
   const response = NextResponse.next();
 
   response.headers.set('Access-Control-Allow-Credentials', 'true');
-  response.headers.set('Access-Control-Allow-Origin', process.env.API_URL!);
+  response.headers.set('Access-Control-Allow-Origin', env.API_URL);
   response.headers.set('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT');
   response.headers.set(
     'Access-Control-Allow-Headers',

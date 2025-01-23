@@ -6,9 +6,9 @@ import { Loader } from 'lucide-react';
 
 import {
   checkGoogleDriveConnection,
-  completeGoogleAuth,
   disconnectGoogleDrive,
-  getGoogleAuthUrl
+  getGoogleDriveAuthUrl,
+  googleDriveAuthCallback
 } from '@/server/actions/google-drive';
 
 interface AuthResponse {
@@ -38,8 +38,12 @@ export function GoogleDriveConnect() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await checkGoogleDriveConnection();
-      setIsConnected(data.connected);
+      const [data, error] = await checkGoogleDriveConnection();
+
+      if (error) {
+        setError(error.message);
+      }
+      setIsConnected(!!data?.connected);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
@@ -50,10 +54,10 @@ export function GoogleDriveConnect() {
   const openAuthWindow = async (): Promise<AuthResponse> => {
     return new Promise(async (resolve, reject) => {
       try {
-        const { url, error } = await getGoogleAuthUrl();
+        const [data, error] = await getGoogleDriveAuthUrl();
 
-        if (error || !url) {
-          throw new Error(error || 'Failed to get auth URL');
+        if (error || !data) {
+          throw new Error(error?.message || 'Failed to get auth URL');
         }
 
         const width = 500;
@@ -62,7 +66,7 @@ export function GoogleDriveConnect() {
         const top = window.screenY + (window.outerHeight - height) / 2;
 
         const popup = window.open(
-          url,
+          data.url,
           'Google Sign In',
           `width=${width},height=${height},left=${left},top=${top}`
         );
@@ -104,11 +108,11 @@ export function GoogleDriveConnect() {
     setError(null);
 
     try {
-      const { code, state } = await openAuthWindow();
-      const result = await completeGoogleAuth(code, state);
+      const { code } = await openAuthWindow();
+      const [_, error] = await googleDriveAuthCallback({ code });
 
-      if (result.error) {
-        setError(result.error);
+      if (error) {
+        setError(error.message);
       }
 
       await handleCheckConnection();
