@@ -1,5 +1,5 @@
 import type { User } from '@filo/types';
-import { Controller, Get, Param, Query, Res } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res, Delete, HttpCode } from '@nestjs/common';
 
 import { CurrentUser } from '@/commons/decorators/current-user.decorator';
 
@@ -44,5 +44,24 @@ export class StorageController {
       fields: 'nextPageToken, files(id, name)'
     });
     return response.data.files;
+  }
+
+  @Delete(':provider/connection')
+  @HttpCode(204)
+  async removeConnection(@Param('provider') provider: StorageProvider, @CurrentUser() user: User) {
+    const storageProvider = this.storageService.getProvider(provider);
+    await storageProvider.removeConnection(user.id);
+  }
+
+  @Get(':provider/connection')
+  async checkConnection(@Param('provider') provider: StorageProvider, @CurrentUser() user: User) {
+    const storageProvider = this.storageService.getProvider(provider);
+
+    try {
+      const connected = await storageProvider.checkConnection(user.id);
+      return { connected };
+    } catch (error) {
+      return { connected: false };
+    }
   }
 }

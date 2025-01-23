@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@filo/ui/components/button';
 import { Loader } from 'lucide-react';
 
-import { completeGoogleAuth, getGoogleAuthUrl } from '@/server/actions/google-drive';
+import {
+  checkGoogleDriveConnection,
+  completeGoogleAuth,
+  disconnectGoogleDrive,
+  getGoogleAuthUrl
+} from '@/server/actions/google-drive';
 
 interface AuthResponse {
   code: string;
@@ -14,6 +19,33 @@ interface AuthResponse {
 export function GoogleDriveConnect() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const handleDisconnect = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await disconnectGoogleDrive();
+      handleCheckConnection();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCheckConnection = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await checkGoogleDriveConnection();
+      setIsConnected(data.connected);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const openAuthWindow = async (): Promise<AuthResponse> => {
     return new Promise(async (resolve, reject) => {
@@ -76,11 +108,10 @@ export function GoogleDriveConnect() {
       const result = await completeGoogleAuth(code, state);
 
       if (result.error) {
-        throw new Error(result.error);
+        setError(result.error);
       }
 
-      // Handle successful connection
-      console.log('Successfully connected to Google Drive');
+      await handleCheckConnection();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -88,14 +119,24 @@ export function GoogleDriveConnect() {
     }
   };
 
+  useEffect(() => {
+    handleCheckConnection();
+  }, [handleCheckConnection]);
+
   return (
     <div className='flex flex-col items-center justify-center gap-2'>
       <Button
         className='flex min-w-[150px] items-center justify-center'
         size='sm'
-        onClick={handleConnect}
+        onClick={isConnected ? handleDisconnect : handleConnect}
       >
-        {isLoading ? <Loader className='size-4 animate-spin' /> : 'Connect Google Drive'}
+        {isLoading ? (
+          <Loader className='size-4 animate-spin' />
+        ) : isConnected ? (
+          'Disconnect Google Drive'
+        ) : (
+          'Connect Google Drive'
+        )}
       </Button>
       {error && <p className='mt-2 text-red-500'>{error}</p>}
     </div>

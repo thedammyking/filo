@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { google } from 'googleapis';
@@ -8,9 +8,15 @@ import { addDays } from 'date-fns';
 import { StorageProvider } from '../constants/storage-provider.enum';
 import { Storage } from '../entities/storage.entity';
 import { IStorageProvider, StorageTokens } from '../interfaces/storage-provider.interface';
+import { GoogleDriveException } from '../exceptions/google-drive.exception';
+
+// Add custom exceptions at the top
 
 @Injectable()
 export class GoogleDriveProvider implements IStorageProvider {
+  private readonly MAX_REFRESH_RETRIES = 3;
+  private readonly logger = new Logger(GoogleDriveProvider.name);
+
   private oauth2Client;
 
   constructor(
@@ -51,33 +57,43 @@ export class GoogleDriveProvider implements IStorageProvider {
   }
 
   private async saveStorage(userId: string, tokens: StorageTokens) {
-    let storage = await this.storageRepository.findOne({
-      where: {
-        userId,
-        provider: StorageProvider.GOOGLE_DRIVE
-      }
-    });
-
-    const updates = {
-      accessToken: tokens.access_token,
-      expiryDate: tokens.expiry_date
-    };
-
-    if (tokens.refresh_token) {
-      updates['refreshToken'] = tokens.refresh_token;
-      updates['refreshTokenExpiresAt'] = addDays(new Date(), 200);
-    }
-
-    if (storage) {
-      Object.assign(storage, updates);
-    } else {
-      storage = this.storageRepository.create({
-        userId,
-        provider: StorageProvider.GOOGLE_DRIVE,
-        ...updates
+    try {
+      let storage = await this.storageRepository.findOne({
+        where: {
+          userId,
+          provider: StorageProvider.GOOGLE_DRIVE
+        }
       });
+
+      const updates = {
+        accessToken: tokens.access_token,
+        expiryDate: tokens.expiry_date,
+        lastUpdated: new Date()
+      };
+
+      if (tokens.refresh_token) {
+        updates['refreshToken'] = tokens.refresh_token;
+        updates['refreshTokenExpiresAt'] = addDays(new Date(), 200);
+      }
+
+      if (storage) {
+        Object.assign(storage, updates);
+      } else {
+        storage = this.storageRepository.create({
+          userId,
+          provider: StorageProvider.GOOGLE_DRIVE,
+          ...updates
+        });
+      }
+      await this.storageRepository.save(storage);
+    } catch (error) {
+      this.logger.error('Failed to save storage tokens', {
+        userId,
+        error: error.message,
+        stack: error.stack
+      });
+      throw new GoogleDriveException('Failed to save storage tokens');
     }
-    await this.storageRepository.save(storage);
   }
 
   private async cleanupExpiredTokens() {
@@ -134,31 +150,25 @@ export class GoogleDriveProvider implements IStorageProvider {
     return google.drive({ version: 'v3', auth: this.oauth2Client });
   }
 
-  async refreshAccessToken(userId: string): Promise<StorageTokens> {
-    const storage = await this.storageRepository.findOne({
-      where: {
-        userId,
-        provider: StorageProvider.GOOGLE_DRIVE
-      }
-    });
-
-    if (!storage?.refreshToken) {
-      // Clean up if exists but no refresh token
-      if (storage) {
-        await this.storageRepository.remove(storage);
-      }
-      throw new UnauthorizedException('No refresh token found');
-    }
-
-    if (storage.refreshTokenExpiresAt && new Date() > storage.refreshTokenExpiresAt) {
-      // Remove the expired storage
-      await this.storageRepository.remove(storage);
-      throw new UnauthorizedException(
-        'Refresh token has expired. Please reconnect your Google Drive account.'
-      );
-    }
-
+  async refreshAccessToken(userId: string, retryCount = 0): Promise<StorageTokens> {
     try {
+      const storage = await this.storageRepository.findOne({
+        where: {
+          userId,
+          provider: StorageProvider.GOOGLE_DRIVE
+        }
+      });
+
+      if (!storage?.refreshToken) {
+        if (storage) await this.storageRepository.remove(storage);
+        throw new GoogleDriveException('No refresh token found', 'NO_REFRESH_TOKEN');
+      }
+
+      // Add rate limiting protection
+      if (storage.lastUpdated && Date.now() - storage.lastUpdated.getTime() < 1000) {
+        throw new GoogleDriveException('Too many token refresh attempts', 'RATE_LIMIT');
+      }
+
       this.oauth2Client.setCredentials({
         refresh_token: storage.refreshToken
       });
@@ -167,10 +177,87 @@ export class GoogleDriveProvider implements IStorageProvider {
       return credentials;
     } catch (error) {
       if (error.message.includes('invalid_grant')) {
-        // Remove invalid storage
-        await this.storageRepository.remove(storage);
+        await this.handleInvalidGrant(userId);
+        throw new GoogleDriveException('Invalid refresh token', 'INVALID_GRANT');
       }
-      throw new UnauthorizedException('Failed to refresh access token');
+
+      // Implement retry logic
+      if (retryCount < this.MAX_REFRESH_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        return this.refreshAccessToken(userId, retryCount + 1);
+      }
+
+      this.logger.error('Failed to refresh access token', {
+        userId,
+        error: error.message,
+        retryCount
+      });
+      throw new GoogleDriveException('Failed to refresh access token', 'REFRESH_FAILED');
     }
+  }
+
+  private async handleInvalidGrant(userId: string): Promise<void> {
+    const storage = await this.storageRepository.findOne({
+      where: {
+        userId,
+        provider: StorageProvider.GOOGLE_DRIVE
+      }
+    });
+    if (storage) await this.storageRepository.remove(storage);
+  }
+
+  private async revokeToken(token: string): Promise<void> {
+    if (!token) return;
+
+    try {
+      await this.oauth2Client.revokeToken(token);
+    } catch (error) {
+      this.logger.warn('Failed to revoke token', {
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  }
+
+  async removeConnection(userId: string): Promise<void> {
+    const storage = await this.storageRepository.findOne({
+      where: {
+        userId,
+        provider: StorageProvider.GOOGLE_DRIVE
+      }
+    });
+
+    if (!storage) {
+      throw new GoogleDriveException('No Google Drive connection found');
+    }
+
+    // Try to refresh token if expired
+    if (Date.now() > storage.expiryDate) {
+      try {
+        const credentials = await this.refreshAccessToken(userId);
+        storage.accessToken = credentials.access_token;
+      } catch (error) {
+        this.logger.warn('Failed to refresh token during removal', {
+          userId,
+          error: error.message
+        });
+      }
+    }
+
+    // Revoke both tokens
+    await Promise.all([
+      this.revokeToken(storage.accessToken),
+      this.revokeToken(storage.refreshToken)
+    ]);
+
+    // Remove storage record
+    await this.storageRepository.remove(storage);
+  }
+
+  async checkConnection(userId: string) {
+    const storage = await this.storageRepository.findOne({
+      where: { userId, provider: StorageProvider.GOOGLE_DRIVE }
+    });
+    return !!storage;
   }
 }

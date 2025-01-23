@@ -58,3 +58,56 @@ export async function completeGoogleAuth(code: string, state: string) {
     return { error: 'Failed to complete authentication' };
   }
 }
+
+export async function checkGoogleDriveConnection() {
+  try {
+    const { userId, getToken } = await auth();
+    if (!userId) {
+      return { error: 'User not found' };
+    }
+
+    const token = await getToken();
+    const response = await fetch(`${process.env.API_URL}/storage/GOOGLE_DRIVE/connection`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      return { connected: false };
+    }
+
+    const { data } = await response.json();
+
+    return { connected: data.connected };
+  } catch (error) {
+    return { connected: false };
+  }
+}
+
+export async function disconnectGoogleDrive() {
+  try {
+    const { userId, getToken } = await auth();
+
+    if (!userId) {
+      return { error: 'User not found' };
+    }
+    const token = await getToken();
+    const response = await fetch(`${process.env.API_URL}/storage/GOOGLE_DRIVE/connection`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      return { error: 'Failed to disconnect from Google Drive' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { error: 'Failed to disconnect from Google Drive' };
+  }
+}

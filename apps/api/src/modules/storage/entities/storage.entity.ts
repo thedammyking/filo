@@ -36,4 +36,7 @@ export class Storage extends BaseEntity {
 
   @Column({ name: 'refresh_token_expires_at', type: 'timestamp', nullable: true })
   refreshTokenExpiresAt: Date;
+
+  @Column({ name: 'last_updated', type: 'timestamp', nullable: true })
+  lastUpdated: Date;
 }

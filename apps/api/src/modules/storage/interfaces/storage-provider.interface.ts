@@ -9,4 +9,6 @@ export interface IStorageProvider {
   getTokens(code: string, userId: string): Promise<StorageTokens>;
   refreshAccessToken(userId: string): Promise<StorageTokens>;
   getStorageClient(userId: string): Promise<any>;
+  removeConnection(userId: string): Promise<void>;
+  checkConnection(userId: string): Promise<boolean>;
 }
