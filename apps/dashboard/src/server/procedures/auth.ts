@@ -12,7 +12,8 @@ export const authedProcedure = createServerActionProcedure().handler(async () =>
     const token = await getToken();
 
     return {
-      token
+      token,
+      userId
     };
   } catch {
     throw new Error('You need to be logged in to continue');

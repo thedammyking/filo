@@ -3,7 +3,7 @@ import { Controller, Get, Param, Query, Res, Delete, HttpCode } from '@nestjs/co
 
 import { CurrentUser } from '@/commons/decorators/current-user.decorator';
 
-import { STORAGE_PROVIDER } from '@filo/libs/constants';
+import { STORAGE_PROVIDER_DETAILS } from '@filo/libs/constants';
 
 import { StorageService } from './storage.service';
 import type { Response } from 'express';
@@ -11,12 +11,6 @@ import type { Response } from 'express';
 @Controller('storage')
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
-
-  @Get('providers')
-  async getProviders() {
-    return Object.values(STORAGE_PROVIDER);
-  }
-
   @Get(':provider/connect')
   async getAuthUrl(@Param('provider') provider: StorageProvider) {
     const storageProvider = this.storageService.getProvider(provider);

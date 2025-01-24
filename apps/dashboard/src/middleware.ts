@@ -4,17 +4,24 @@ import { NextResponse } from 'next/server';
 import { env } from './evn';
 
 const isPublicRoute = createRouteMatcher(['/auth/login(.*)', '/auth/signup(.*)']);
+
+const isOAuthCallbackRoute = createRouteMatcher(['/oauth/callback(.*)']);
+
 const isOnboardingRoute = createRouteMatcher(['/onboarding']);
 
 export default clerkMiddleware(async (auth, request) => {
   const { userId, sessionClaims } = await auth();
   const onboardingComplete = sessionClaims?.metadata?.onboardingComplete;
 
+  if (isOAuthCallbackRoute(request)) {
+    return NextResponse.next();
+  }
+
   if (userId) {
-    // if (isPublicRoute(request) || (isOnboardingRoute(request) && onboardingComplete))
-    if (isPublicRoute(request)) return NextResponse.redirect(new URL('/', request.url));
-    // if (isOnboardingRoute(request) && !onboardingComplete) return NextResponse.next();
-    // if (!onboardingComplete) return NextResponse.redirect(new URL('/onboarding', request.url));
+    if (isPublicRoute(request) || (isOnboardingRoute(request) && onboardingComplete))
+      return NextResponse.redirect(new URL('/', request.url));
+    if (isOnboardingRoute(request) && !onboardingComplete) return NextResponse.next();
+    if (!onboardingComplete) return NextResponse.redirect(new URL('/onboarding', request.url));
   }
 
   if (!userId && !isPublicRoute(request)) {

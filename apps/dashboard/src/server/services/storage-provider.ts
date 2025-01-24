@@ -18,7 +18,6 @@ export const storageAuthCallback = async (
   code: string,
   token: string | null
 ) => {
-  console.log('storageAuthCallback', code, token);
   return await fetch(`${env.API_URL}/storage/${provider}/callback?code=${code}`, {
     method: 'GET',
     headers: {

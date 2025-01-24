@@ -1,26 +1,18 @@
 'use server';
 
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { authedProcedure } from '../procedures/auth';
+import * as onboardingService from '../services/onboarding';
 
-export const completeOnboarding = async (formData: FormData) => {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return { message: 'No Logged In User' };
-  }
-
-  const client = await clerkClient();
-
+export const completeOnboarding = authedProcedure.createServerAction().handler(async ({ ctx }) => {
+  const { userId } = ctx;
   try {
-    const res = await client.users.updateUser(userId, {
+    const response = await onboardingService.completeOnboarding(userId, {
       publicMetadata: {
-        onboardingComplete: true,
-        applicationName: formData.get('applicationName'),
-        applicationType: formData.get('applicationType')
+        onboardingComplete: true
       }
     });
-    return { message: res.publicMetadata };
-  } catch (err) {
-    return { error: 'There was an error updating the user metadata.' };
+    return response.publicMetadata;
+  } catch (error: any) {
+    throw new Error(error.message || 'There was an error updating the user metadata.');
   }
-};
+});

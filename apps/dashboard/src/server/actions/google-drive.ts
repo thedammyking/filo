@@ -36,7 +36,7 @@ export const googleDriveAuthCallback = authedProcedure
   .handler(async ({ ctx, input }): Promise<SaveStorageTokensResponse> => {
     const { token } = ctx;
     const { code } = input;
-    console.log('googleDriveAuthCallback', code, token);
+
     try {
       const response = await storageAuthCallback(STORAGE_PROVIDER.GOOGLE_DRIVE, code, token);
 

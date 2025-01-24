@@ -1,45 +1,35 @@
-'use client';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '@filo/ui/components/card';
 
-import * as React from 'react';
-import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import CloudProvidersList from '@/components/onboarding/cloud-providers-list';
+import LogoutButton from '@/components/onboarding/logout-button';
+import OnboardingProvider from '@/components/onboarding/onboarding-provider';
+import ProviderConnectButton from '@/components/onboarding/provider-connect-button';
 
-// import { completeOnboarding } from './_actions';
-
-export default function OnboardingComponent() {
-  const [error, setError] = React.useState('');
-  const { user } = useUser();
-  const router = useRouter();
-
-  const handleSubmit = async (formData: FormData) => {
-    // const res = await completeOnboarding(formData);
-    // if (res?.message) {
-    //   // Reloads the user's data from the Clerk API
-    //   await user?.reload();
-    //   router.push('/');
-    // }
-    // if (res?.error) {
-    //   setError(res?.error);
-    // }
-  };
+export default async function OnboardingPage() {
   return (
-    <div>
-      <h1>Welcome</h1>
-      <form action={handleSubmit}>
-        <div>
-          <label>Application Name</label>
-          <p>Enter the name of your application.</p>
-          <input type='text' name='applicationName' required />
-        </div>
-
-        <div>
-          <label>Application Type</label>
-          <p>Describe the type of your application.</p>
-          <input type='text' name='applicationType' required />
-        </div>
-        {error && <p className='text-red-600'>Error: {error}</p>}
-        <button type='submit'>Submit</button>
-      </form>
-    </div>
+    <Card className='w-full sm:w-96'>
+      <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
+        <CardTitle>Connect your storage</CardTitle>
+        <CardDescription className='text-center'>
+          Select a storage and connect to start using Filo
+        </CardDescription>
+      </CardHeader>
+      <OnboardingProvider>
+        <CardContent>
+          <CloudProvidersList />
+        </CardContent>
+        <CardFooter className='flex flex-col items-center justify-center gap-2'>
+          <ProviderConnectButton />
+          <LogoutButton />
+        </CardFooter>
+      </OnboardingProvider>
+    </Card>
   );
 }
