@@ -111,12 +111,15 @@ importers:
       '@filo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
+      '@filo/interfaces':
+        specifier: workspace:*
+        version: link:../../packages/interfaces
+      '@filo/libs':
+        specifier: workspace:*
+        version: link:../../packages/libs
       '@filo/prettier-config':
         specifier: workspace:*
         version: link:../../packages/prettier-config
-      '@filo/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.0(@types/node@22.10.7)
@@ -195,6 +198,12 @@ importers:
       '@filo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@t3-oss/env-nextjs':
+        specifier: ^0.11.1
+        version: 0.11.1(typescript@5.7.3)(zod@3.24.1)
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       lucide-react:
         specifier: 0.473.0
         version: 0.473.0(react@19.0.0)
@@ -210,10 +219,25 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.0.0(react@19.0.0)
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.1
+      zsa:
+        specifier: ^0.6.0
+        version: 0.6.0(zod@3.24.1)
+      zsa-react:
+        specifier: ^0.2.3
+        version: 0.2.3(react@19.0.0)(zod@3.24.1)
     devDependencies:
       '@filo/eslint-config':
         specifier: workspace:^
         version: link:../../packages/eslint-config
+      '@filo/interfaces':
+        specifier: workspace:*
+        version: link:../../packages/interfaces
+      '@filo/libs':
+        specifier: workspace:*
+        version: link:../../packages/libs
       '@filo/prettier-config':
         specifier: workspace:*
         version: link:../../packages/prettier-config
@@ -226,6 +250,9 @@ importers:
       '@filo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      '@types/lodash':
+        specifier: ^4.17.14
+        version: 4.17.14
       '@types/node':
         specifier: ^22.10.7
         version: 22.10.7
@@ -305,6 +332,36 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0(eslint@9.18.0(jiti@2.4.2))(typescript@5.7.3)
 
+  packages/interfaces:
+    devDependencies:
+      '@clerk/backend':
+        specifier: ^1.23.4
+        version: 1.23.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@filo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@filo/libs':
+        specifier: workspace:*
+        version: link:../libs
+      '@filo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      googleapis:
+        specifier: ^144.0.0
+        version: 144.0.0
+
+  packages/libs:
+    devDependencies:
+      '@clerk/backend':
+        specifier: ^1.23.4
+        version: 1.23.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@filo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@filo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+
   packages/prettier-config:
     dependencies:
       prettier:
@@ -352,18 +409,6 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.10.7)(typescript@5.7.3)))
-
-  packages/types:
-    devDependencies:
-      '@clerk/backend':
-        specifier: ^1.23.4
-        version: 1.23.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      '@filo/eslint-config':
-        specifier: workspace:*
-        version: link:../eslint-config
-      '@filo/typescript-config':
-        specifier: workspace:*
-        version: link:../typescript-config
 
   packages/typescript-config: {}
 
@@ -1528,6 +1573,24 @@ packages:
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
 
+  '@t3-oss/env-core@0.11.1':
+    resolution: {integrity: sha512-MaxOwEoG1ntCFoKJsS7nqwgcxLW1SJw238AJwfJeaz3P/8GtkxXZsPPolsz1AdYvUTbe3XvqZ/VCdfjt+3zmKw==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+      zod: ^3.0.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@t3-oss/env-nextjs@0.11.1':
+    resolution: {integrity: sha512-rx2XL9+v6wtOqLNJbD5eD8OezKlQD1BtC0WvvtHwBgK66jnF5+wGqtgkKK4Ygie1LVmoDClths2T4tdFmRvGrQ==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+      zod: ^3.0.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   '@taplo/core@0.1.1':
     resolution: {integrity: sha512-BG/zLGf5wiNXGEVPvUAAX/4ilB3PwDUY2o0MV0y47mZbDZ9ad9UK/cIQsILat3bqbPJsALVbU6k3cskNZ3vAQg==}
 
@@ -1625,6 +1688,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/lodash@4.17.14':
+    resolution: {integrity: sha512-jsxagdikDiDBeIRaPYtArcT8my4tN1og7MtMRquFT3XNA6axxyHDRUemqDz/taRDdOUn0GnGHRCuff4q48sW9A==}
 
   '@types/luxon@3.4.2':
     resolution: {integrity: sha512-TifLZlFudklWlMBfhubvgqTXRzLDI5pCbGa4P8a3wPyUQSW+1xQ5eDsreP9DWHX3tjq1ke96uYG/nwundroWcA==}
@@ -5971,6 +6037,17 @@ packages:
   zod@3.24.1:
     resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}
 
+  zsa-react@0.2.3:
+    resolution: {integrity: sha512-THCoIIhtEU3jXTrNBM/PBc0PyHCekizSGEc+fg0LGo1NM1J02LFQN7ICR948X25IjtkZdvxUZmT0+M73GG8eEw==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      zod: ^3.23.5
+
+  zsa@0.6.0:
+    resolution: {integrity: sha512-Pq3X4T0dna5s4dIevYOJiRdM3DUHRvEHS2q1AH/bvkPSh640u+9veVj5zmzmbL0A6cpXMYagwKsR4keGOc0jPQ==}
+    peerDependencies:
+      zod: ^3.23.5
+
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
@@ -7216,6 +7293,19 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@t3-oss/env-core@0.11.1(typescript@5.7.3)(zod@3.24.1)':
+    dependencies:
+      zod: 3.24.1
+    optionalDependencies:
+      typescript: 5.7.3
+
+  '@t3-oss/env-nextjs@0.11.1(typescript@5.7.3)(zod@3.24.1)':
+    dependencies:
+      '@t3-oss/env-core': 0.11.1(typescript@5.7.3)(zod@3.24.1)
+      zod: 3.24.1
+    optionalDependencies:
+      typescript: 5.7.3
+
   '@taplo/core@0.1.1': {}
 
   '@taplo/lib@0.4.0-alpha.2':
@@ -7362,6 +7452,8 @@ snapshots:
       pretty-format: 29.7.0
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/lodash@4.17.14': {}
 
   '@types/luxon@3.4.2': {}
 
@@ -12433,3 +12525,13 @@ snapshots:
   yoctocolors-cjs@2.1.2: {}
 
   zod@3.24.1: {}
+
+  zsa-react@0.2.3(react@19.0.0)(zod@3.24.1):
+    dependencies:
+      react: 19.0.0
+      zod: 3.24.1
+      zsa: 0.6.0(zod@3.24.1)
+
+  zsa@0.6.0(zod@3.24.1):
+    dependencies:
+      zod: 3.24.1

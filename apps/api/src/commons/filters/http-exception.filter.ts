@@ -1,4 +1,4 @@
-import type { ServerResponse } from '@filo/types';
+import type { ServerResponse } from '@filo/interfaces';
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { format } from 'date-fns';
 import { Request, Response } from 'express';

@@ -1,5 +1,5 @@
 import { ClerkClient } from '@clerk/backend';
-import { CreateUserParams, UpdateUserParams, UserListParams } from '@filo/types';
+import { CreateUserParams, UpdateUserParams, UserListParams } from '@filo/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()

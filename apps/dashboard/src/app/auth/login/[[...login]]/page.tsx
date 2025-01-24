@@ -23,9 +23,11 @@ export default function SignInPage() {
           <>
             <SignIn.Step name='start'>
               <Card className='w-full sm:w-96'>
-                <CardHeader>
+                <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
                   <CardTitle>Sign in to Filo</CardTitle>
-                  <CardDescription>Welcome back! Please sign in to continue</CardDescription>
+                  <CardDescription className='text-center'>
+                    Welcome back! Please sign in to continue
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className='grid gap-y-4'>
                   <Clerk.Field name='identifier' className='space-y-2'>
@@ -64,9 +66,11 @@ export default function SignInPage() {
 
             <SignIn.Step name='forgot-password'>
               <Card className='w-full sm:w-96'>
-                <CardHeader>
+                <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
                   <CardTitle>Forgot your password?</CardTitle>
-                  <CardDescription>Reset your password via email</CardDescription>
+                  <CardDescription className='text-center'>
+                    Reset your password via email
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className='grid gap-y-4'>
                   <SignIn.SupportedStrategy name='reset_password_email_code' asChild>
@@ -97,9 +101,9 @@ export default function SignInPage() {
 
             <SignIn.Step name='reset-password'>
               <Card className='w-full sm:w-96'>
-                <CardHeader>
+                <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
                   <CardTitle>Create a new password</CardTitle>
-                  <CardDescription>
+                  <CardDescription className='text-center'>
                     Create a new password for your account to continue
                   </CardDescription>
                 </CardHeader>
@@ -145,9 +149,9 @@ export default function SignInPage() {
 
             <SignIn.Step name='choose-strategy'>
               <Card className='w-full sm:w-96'>
-                <CardHeader>
+                <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
                   <CardTitle>Use another method</CardTitle>
-                  <CardDescription>
+                  <CardDescription className='text-center'>
                     Facing issues? You can use any of these methods to sign in.
                   </CardDescription>
                 </CardHeader>
@@ -186,9 +190,11 @@ export default function SignInPage() {
             <SignIn.Step name='verifications'>
               <SignIn.Strategy name='password'>
                 <Card className='w-full sm:w-96'>
-                  <CardHeader>
+                  <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
                     <CardTitle>Enter your password</CardTitle>
-                    <CardDescription>Enter your password to sign in</CardDescription>
+                    <CardDescription className='text-center'>
+                      Enter your password to sign in
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className='grid gap-y-4'>
                     <Clerk.Field name='password' className='space-y-2'>
@@ -233,9 +239,9 @@ export default function SignInPage() {
 
               <SignIn.Strategy name='email_code'>
                 <Card className='w-full sm:w-96'>
-                  <CardHeader>
+                  <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
                     <CardTitle>Check your email</CardTitle>
-                    <CardDescription>
+                    <CardDescription className='text-center'>
                       Enter the verification code sent to your email
                     </CardDescription>
                     <p className='text-sm text-muted-foreground'>
@@ -310,9 +316,9 @@ export default function SignInPage() {
 
               <SignIn.Strategy name='reset_password_email_code'>
                 <Card className='w-full sm:w-96'>
-                  <CardHeader>
+                  <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
                     <CardTitle>Check your email</CardTitle>
-                    <CardDescription>
+                    <CardDescription className='text-center'>
                       Enter the verification code sent to your email
                     </CardDescription>
                     <p className='text-sm text-muted-foreground'>

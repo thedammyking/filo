@@ -3,8 +3,6 @@
 import { useAuth } from '@clerk/nextjs';
 import { Button } from '@filo/ui/components/button';
 
-import { GoogleDriveConnect } from '@/components/google-drive-connect';
-
 export default function Page() {
   const { signOut } = useAuth();
 
@@ -15,7 +13,6 @@ export default function Page() {
         <Button className='min-w-24' size='sm' onClick={() => signOut()}>
           Sign Out
         </Button>
-        <GoogleDriveConnect />
       </div>
     </div>
   );

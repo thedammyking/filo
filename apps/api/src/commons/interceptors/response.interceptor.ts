@@ -1,4 +1,4 @@
-import type { ServerResponse } from '@filo/types';
+import type { ServerResponse } from '@filo/interfaces';
 import {
   CallHandler,
   ExecutionContext,

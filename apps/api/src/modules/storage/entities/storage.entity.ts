@@ -1,16 +1,8 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryColumn,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn
-} from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 
-import { generatePrefixedUUID } from '@/lib/utils';
-import { StorageProvider } from '../constants/storage-provider.enum';
+import { STORAGE_PROVIDER } from '@filo/libs/constants';
 import { BaseEntity } from '@/commons/entities/base.entity';
+import type { StorageProvider } from '@filo/interfaces';
 
 @Entity('storage')
 @Index('IDX_STORAGE_USER_PROVIDER', ['userId', 'provider'], { unique: true })
@@ -21,7 +13,7 @@ export class Storage extends BaseEntity {
   @Column({
     name: 'provider',
     type: 'enum',
-    enum: StorageProvider
+    enum: STORAGE_PROVIDER
   })
   provider: StorageProvider;
 

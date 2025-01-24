@@ -1,5 +1,5 @@
 {
-  "name": "@filo/types",
+  "name": "@filo/interfaces",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,6 +9,8 @@
   "devDependencies": {
     "@clerk/backend": "^1.23.4",
     "@filo/eslint-config": "workspace:*",
-    "@filo/typescript-config": "workspace:*"
+    "@filo/typescript-config": "workspace:*",
+    "@filo/libs": "workspace:*",
+    "googleapis": "^144.0.0"
   }
 }

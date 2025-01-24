@@ -1,4 +1,5 @@
 'use client';
+
 import * as Clerk from '@clerk/elements/common';
 import * as SignUp from '@clerk/elements/sign-up';
 import { Button } from '@filo/ui/components/button';
@@ -24,9 +25,9 @@ export default function SignUpPage() {
           <>
             <SignUp.Step name='start'>
               <Card className='w-full sm:w-96'>
-                <CardHeader>
+                <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
                   <CardTitle>Create your account</CardTitle>
-                  <CardDescription>
+                  <CardDescription className='text-center'>
                     Welcome! Please fill in the details to get started.
                   </CardDescription>
                 </CardHeader>
@@ -97,9 +98,9 @@ export default function SignUpPage() {
             <SignUp.Step name='verifications'>
               <SignUp.Strategy name='email_code'>
                 <Card className='w-full sm:w-96'>
-                  <CardHeader>
+                  <CardHeader className='flex flex-col items-center justify-center gap-y-4'>
                     <CardTitle>Verify your email</CardTitle>
-                    <CardDescription>
+                    <CardDescription className='text-center'>
                       Use the verification code sent to your email address
                     </CardDescription>
                   </CardHeader>

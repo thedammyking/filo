@@ -45,7 +45,8 @@
   "devDependencies": {
     "@filo/eslint-config": "workspace:*",
     "@filo/prettier-config": "workspace:*",
-    "@filo/types": "workspace:*",
+    "@filo/interfaces": "workspace:*",
+    "@filo/libs": "workspace:*",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.3",

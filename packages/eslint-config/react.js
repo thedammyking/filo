@@ -37,7 +37,7 @@ export default [
         'error',
         { extensions: ['.jsx', '.tsx'], ignoreFilesWithoutCode: true }
       ],
-      'react/no-multi-comp': 'error',
+      'react/no-multi-comp': 'off',
       'react/prefer-stateless-function': 'error',
       'react/prop-types': 'off',
       'react/jsx-no-leaked-render': 'off',
