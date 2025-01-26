@@ -35,4 +35,12 @@ export class StorageService {
     }
     return storageProvider;
   }
+
+  async getAllStorages(userId: string): Promise<Storage[]> {
+    return this.storageRepository.find({ where: { userId } });
+  }
+
+  async getStorage(userId: string, provider: StorageProvider): Promise<Storage> {
+    return this.storageRepository.findOne({ where: { userId, provider } });
+  }
 }

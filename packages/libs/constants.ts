@@ -26,3 +26,14 @@ export const STORAGE_PROVIDER_DETAILS = Object.freeze({
     status: AVAILABILITY_STATUS.UNAVAILABLE
   }
 });
+
+export const UPLOAD_STATUS = Object.freeze({
+  PENDING: 'pending',
+  SUCCESS: 'success',
+  FAILED: 'failed'
+});
+
+export const UPLOAD_TYPE = Object.freeze({
+  REGULAR: 'regular',
+  MAGNET: 'magnet'
+});
