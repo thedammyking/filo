@@ -12,15 +12,15 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@filo/eslint-config": "workspace:*",
     "@commitlint/cli": "^19.6.1",
     "@commitlint/config-conventional": "^19.6.0",
+    "@filo/eslint-config": "workspace:*",
     "eslint": "^9.18.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.4.1",
     "prettier": "^3.4.2",
     "stylelint": "^16.13.2",
-    "turbo": "^2.3.3",
+    "turbo": "^2.3.4",
     "typescript": "^5.7.3"
   },
   "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0",
