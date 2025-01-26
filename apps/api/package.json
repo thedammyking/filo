@@ -26,6 +26,7 @@
     "@nestjs/passport": "^11.0.4",
     "@nestjs/platform-express": "^11.0.3",
     "@nestjs/schedule": "^5.0.0",
+    "@nestjs/swagger": "^11.0.3",
     "@nestjs/throttler": "^6.3.0",
     "@nestjs/typeorm": "^11.0.0",
     "class-transformer": "^0.5.1",
@@ -44,9 +45,9 @@
   },
   "devDependencies": {
     "@filo/eslint-config": "workspace:*",
-    "@filo/prettier-config": "workspace:*",
     "@filo/interfaces": "workspace:*",
     "@filo/libs": "workspace:*",
+    "@filo/prettier-config": "workspace:*",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.3",
