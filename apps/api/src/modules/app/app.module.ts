@@ -11,6 +11,7 @@ import { AuthModule } from '@/modules/auth/auth.module';
 import { ClerkAuthGuard } from '@/modules/auth/guards/clerk-auth.guard';
 import { StorageModule } from '@/modules/storage/storage.module';
 import { UsersModule } from '@/modules/users/users.module';
+import { UploadsModule } from '@/modules/uploads/uploads.module';
 
 import { AppController } from './app.controller';
 import { CatchEverythingFilter } from '@/commons/filters/catch-everything.filter';
@@ -42,7 +43,8 @@ import { CatchEverythingFilter } from '@/commons/filters/catch-everything.filter
     }),
     UsersModule,
     AuthModule,
-    StorageModule
+    StorageModule,
+    UploadsModule
   ],
   providers: [
     { provide: APP_PIPE, useValue: new ValidationPipe({ whitelist: true }) },

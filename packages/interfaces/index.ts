@@ -1,5 +1,5 @@
 import type { ClerkClient } from '@clerk/backend';
-import type { STORAGE_PROVIDER } from '@filo/libs/constants';
+import type { STORAGE_PROVIDER, UPLOAD_STATUS, UPLOAD_TYPE } from '@filo/libs/constants';
 import type { google } from 'googleapis';
 
 export type { User } from '@clerk/backend';
@@ -58,3 +58,7 @@ export interface WithData<T> {
 }
 
 export type StorageProvider = (typeof STORAGE_PROVIDER)[keyof typeof STORAGE_PROVIDER];
+
+export type UploadStatus = (typeof UPLOAD_STATUS)[keyof typeof UPLOAD_STATUS];
+
+export type UploadType = (typeof UPLOAD_TYPE)[keyof typeof UPLOAD_TYPE];

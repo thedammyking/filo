@@ -1,5 +1,16 @@
 import type { StorageProvider, User } from '@filo/interfaces';
-import { Controller, Get, Param, Query, Res, Delete, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Res,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  UseInterceptors,
+  ClassSerializerInterceptor
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -14,13 +25,42 @@ import { CurrentUser } from '@/commons/decorators/current-user.decorator';
 import { STORAGE_PROVIDER } from '@filo/libs/constants';
 
 import { StorageService } from './storage.service';
-import { AuthUrlResponse, StorageTokenResponse, ConnectionStatusResponse } from './dto/storage.dto';
+import {
+  AuthUrlResponse,
+  StorageTokenResponse,
+  ConnectionStatusResponse,
+  StorageResponse
+} from './dto/storage.dto';
 
 @ApiTags('storage')
 @ApiBearerAuth()
 @Controller('storage')
+@UseInterceptors(ClassSerializerInterceptor)
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
+
+  @Get('list')
+  @ApiOperation({ summary: 'Get all storages' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'All storages',
+    type: StorageResponse,
+    isArray: true
+  })
+  async getAllStorages(@CurrentUser() user: User) {
+    return await this.storageService.getAllStorages(user.id);
+  }
+
+  @Get(':provider')
+  @ApiOperation({ summary: 'Get a storage' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The storage',
+    type: StorageResponse
+  })
+  async getStorage(@Param('provider') provider: StorageProvider, @CurrentUser() user: User) {
+    return await this.storageService.getStorage(user.id, provider);
+  }
 
   @Get(':provider/connect')
   @ApiOperation({ summary: 'Get OAuth authorization URL for a storage provider' })
@@ -30,7 +70,7 @@ export class StorageController {
     description: 'The storage provider to connect to'
   })
   @ApiResponse({
-    status: 200,
+    status: HttpStatus.OK,
     description: 'The OAuth authorization URL',
     type: AuthUrlResponse
   })
@@ -51,7 +91,7 @@ export class StorageController {
     description: 'The authorization code from the OAuth provider'
   })
   @ApiResponse({
-    status: 200,
+    status: HttpStatus.OK,
     description: 'Storage tokens saved successfully',
     type: StorageTokenResponse
   })
@@ -72,7 +112,7 @@ export class StorageController {
     description: 'The storage provider to check connection for'
   })
   @ApiResponse({
-    status: 200,
+    status: HttpStatus.OK,
     description: 'Connection status retrieved successfully',
     type: ConnectionStatusResponse
   })
@@ -85,7 +125,7 @@ export class StorageController {
   }
 
   @Delete(':provider/connection')
-  @HttpCode(204)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove connection with storage provider' })
   @ApiParam({
     name: 'provider',
@@ -93,7 +133,7 @@ export class StorageController {
     description: 'The storage provider to disconnect from'
   })
   @ApiResponse({
-    status: 204,
+    status: HttpStatus.NO_CONTENT,
     description: 'Connection removed successfully'
   })
   async removeConnection(

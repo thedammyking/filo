@@ -1,10 +1,20 @@
 'use client';
 
+import React from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Button } from '@filo/ui/components/button';
 
 export default function Page() {
-  const { signOut } = useAuth();
+  const { signOut, getToken } = useAuth();
+
+  const handleToken = React.useCallback(async () => {
+    const token = await getToken();
+    console.log(token);
+  }, [getToken]);
+
+  React.useEffect(() => {
+    handleToken();
+  }, [handleToken]);
 
   return (
     <div className='flex min-h-svh items-center justify-center'>
