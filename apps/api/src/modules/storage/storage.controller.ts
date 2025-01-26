@@ -38,16 +38,16 @@ export class StorageController {
     return response.data.files;
   }
 
+  @Get(':provider/connection')
+  async checkConnection(@Param('provider') provider: StorageProvider, @CurrentUser() user: User) {
+    const storageProvider = this.storageService.getProvider(provider);
+    return await storageProvider.checkConnection(user.id);
+  }
+
   @Delete(':provider/connection')
   @HttpCode(204)
   async removeConnection(@Param('provider') provider: StorageProvider, @CurrentUser() user: User) {
     const storageProvider = this.storageService.getProvider(provider);
     return await storageProvider.removeConnection(user.id);
-  }
-
-  @Get(':provider/connection')
-  async checkConnection(@Param('provider') provider: StorageProvider, @CurrentUser() user: User) {
-    const storageProvider = this.storageService.getProvider(provider);
-    return await storageProvider.checkConnection(user.id);
   }
 }
