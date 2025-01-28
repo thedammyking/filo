@@ -1,13 +1,14 @@
 'use server';
 
+import { cache } from 'react';
+
 import type { CloudProvider } from '@/types/interfaces';
 
 import { authedProcedure } from '../procedures/auth';
 import * as storageProviderService from '../services/storage-provider';
 
-export const getCloudProviders = authedProcedure
-  .createServerAction()
-  .handler(async ({ ctx }): Promise<CloudProvider[]> => {
+export const getCloudProviders = cache(
+  authedProcedure.createServerAction().handler(async ({ ctx }): Promise<CloudProvider[]> => {
     const { token } = ctx;
     try {
       const response = await storageProviderService.getCloudProviders(token);
@@ -17,4 +18,5 @@ export const getCloudProviders = authedProcedure
     } catch (error: any) {
       throw new Error(error.message || 'There was an error getting the cloud providers.');
     }
-  });
+  })
+);

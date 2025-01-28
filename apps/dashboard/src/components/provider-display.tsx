@@ -3,7 +3,7 @@ import { STORAGE_PROVIDER_DETAILS } from '@filo/libs/constants';
 import { cn } from '@filo/ui/lib/utils';
 import Image from 'next/image';
 
-interface ProviderButtonProps {
+interface ProviderDisplayProps {
   provider: StorageProvider;
   image?: {
     width?: number;
@@ -15,12 +15,21 @@ interface ProviderButtonProps {
     image?: string;
     name?: string;
   };
+  isActive?: boolean;
 }
 
-export const ProviderButton = ({ provider, image, classNames }: ProviderButtonProps) => {
+export const ProviderDisplay = ({
+  provider,
+  image,
+  classNames,
+  isActive
+}: ProviderDisplayProps) => {
   const providerDetails = STORAGE_PROVIDER_DETAILS[provider];
   return (
-    <div className={cn('flex items-center gap-3', classNames?.root)}>
+    <div
+      className={cn('group flex w-max items-center gap-3', classNames?.root)}
+      data-active={isActive}
+    >
       <Image
         src={`/${provider}.svg`}
         alt={providerDetails.name}
@@ -29,7 +38,14 @@ export const ProviderButton = ({ provider, image, classNames }: ProviderButtonPr
         className={classNames?.image || 'size-[30px]'}
         objectFit={image?.objectFit || 'fill'}
       />
-      <p className={classNames?.name}>{providerDetails.name}</p>
+      <p
+        className={cn(
+          'group-data-[active=true]:hidden group-data-[active=true]:sm:block',
+          classNames?.name
+        )}
+      >
+        {providerDetails.name}
+      </p>
     </div>
   );
 };
