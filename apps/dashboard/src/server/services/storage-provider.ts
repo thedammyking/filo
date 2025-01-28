@@ -51,3 +51,12 @@ export const disconnectStorageProvider = async (
     }
   });
 };
+
+export const getCloudProviders = async (token: string | null) => {
+  return await fetch(`${env.API_URL}/storage/list`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+};

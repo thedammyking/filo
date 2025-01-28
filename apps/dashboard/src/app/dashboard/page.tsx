@@ -1,6 +1,6 @@
 import { DashboardHeader } from '@/components/dashboard-header';
 
-export default function Page() {
+export default async function Page() {
   return (
     <main className='flex flex-col gap-4'>
       <DashboardHeader />

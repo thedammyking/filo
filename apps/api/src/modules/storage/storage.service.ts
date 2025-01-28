@@ -20,14 +20,6 @@ export class StorageService {
     this.providers = new Map([[STORAGE_PROVIDER.GOOGLE_DRIVE, googleDriveProvider]]);
   }
 
-  // Run every day at midnight
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'cleanupExpiredTokens' })
-  async cleanupExpiredTokens() {
-    await this.storageRepository.delete({
-      refreshTokenExpiresAt: LessThan(new Date())
-    });
-  }
-
   getProvider(provider: StorageProvider): IStorageProvider {
     const storageProvider = this.providers.get(provider);
     if (!storageProvider) {
