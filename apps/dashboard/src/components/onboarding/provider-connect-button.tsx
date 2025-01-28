@@ -7,7 +7,7 @@ import { Button } from '@filo/ui/components/button';
 import { Loader } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { useConnectToGoogleDrive } from '@/hooks/useConnectToGoogleDrive';
+import { useConnectToGoogleDrive } from '@/hooks/use-connect-to-google-drive';
 import { completeOnboarding } from '@/server/actions/onboarding';
 
 import { useOnboardingContext } from './onboarding-provider';
