@@ -1,5 +1,4 @@
-import { STORAGE_PROVIDER_DETAILS } from '@filo/libs/constants';
-import { Button } from '@filo/ui/components/button';
+import { Card, CardContent, CardFooter } from '@filo/ui/components/card';
 import {
   Dialog,
   DialogClose,
@@ -8,9 +7,11 @@ import {
   DialogHeader,
   DialogTitle
 } from '@filo/ui/components/dialog';
-import { uniqueId } from 'lodash';
 import { X } from 'lucide-react';
-import Image from 'next/image';
+
+import ConnectButton from './storage-providers/connection-button';
+import StorageProvidersContextProvider from './storage-providers/context-provider';
+import ProvidersList from './storage-providers/providers-list';
 
 interface ManageStorageDialogProps {
   open: boolean;
@@ -24,28 +25,20 @@ export const ManageStorageDialog: React.FC<ManageStorageDialogProps> = ({ open, 
         <DialogHeader className='flex flex-col gap-y-3'>
           <DialogTitle className='text-3xl'>Manage Storage</DialogTitle>
           <DialogDescription className='text-md text-accent-foreground'>
-            Select a storage and connect or disconnect from your storage
+            Select a storage to connect or disconnect
           </DialogDescription>
         </DialogHeader>
-        <div className='flex w-full items-center justify-center'>
-          {Object.values(STORAGE_PROVIDER_DETAILS).map(provider => (
-            <Button
-              type='button'
-              variant='ghost'
-              key={uniqueId('storage-provider-')}
-              className='flex h-max min-w-[120px] flex-col items-center justify-center gap-y-4 p-4 data-[selected=true]:bg-accent'
-            >
-              <Image
-                src={`/${provider.value}.svg`}
-                alt={provider.name}
-                width={50}
-                height={50}
-                className='size-[50px]'
-                objectFit='fill'
-              />
-              <h3>{provider?.name}</h3>
-            </Button>
-          ))}
+        <div className='mt-[120px] flex w-full justify-center'>
+          <Card className='w-full sm:w-96'>
+            <StorageProvidersContextProvider>
+              <CardContent>
+                <ProvidersList />
+              </CardContent>
+              <CardFooter className='flex flex-col items-center justify-center gap-2'>
+                <ConnectButton />
+              </CardFooter>
+            </StorageProvidersContextProvider>
+          </Card>
         </div>
         <DialogClose className='min-h-1 p-3 hover:bg-accent/50 hover:text-accent-foreground/75'>
           <X className='size-4' />

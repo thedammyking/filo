@@ -1,5 +1,6 @@
 import { Figtree } from 'next/font/google';
 
+import AppLayout from '@/components/app-layout';
 import { Providers } from '@/components/providers';
 import ThemeSwitcher from '@/components/theme-switcher';
 
@@ -22,7 +23,7 @@ export default function RootLayout({
     <html lang='en' suppressHydrationWarning>
       <body className={`${fontSans.variable} font-sans antialiased`}>
         <Providers>
-          {children}
+          <AppLayout>{children}</AppLayout>
           <ThemeSwitcher />
         </Providers>
       </body>

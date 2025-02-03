@@ -1,16 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 
-import { getGoogleDriveAuthUrl, googleDriveAuthCallback } from '@/server/actions/google-drive';
+import {
+  checkGoogleDriveConnection,
+  disconnectGoogleDrive,
+  getGoogleDriveAuthUrl,
+  googleDriveAuthCallback
+} from '@/server/actions/google-drive';
 
 interface AuthResponse {
   code: string;
 }
 
-export const useConnectToGoogleDrive = (onSuccess?: () => Promise<void>) => {
+export const useConnectToGoogleDrive = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   const openAuthWindow = async (): Promise<AuthResponse> => {
     // eslint-disable-next-line no-async-promise-executor
@@ -65,17 +71,16 @@ export const useConnectToGoogleDrive = (onSuccess?: () => Promise<void>) => {
   };
 
   const handleConnect = async () => {
-    setIsLoading(true);
-    setError(null);
-
     try {
+      setIsLoading(true);
+      setError(null);
       const { code } = await openAuthWindow();
       const [_, error] = await googleDriveAuthCallback({ code });
 
       if (error) {
         setError(error.message);
       }
-      await onSuccess?.();
+      await handleCheckConnection();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -83,9 +88,44 @@ export const useConnectToGoogleDrive = (onSuccess?: () => Promise<void>) => {
     }
   };
 
+  const handleDisconnect = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      await disconnectGoogleDrive();
+      await handleCheckConnection();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCheckConnection = React.useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [data, error] = await checkGoogleDriveConnection();
+      console.log('data', data);
+
+      if (error) {
+        setError(error.message);
+      }
+      setIsConnected(!!data?.connected);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     error,
-    handleConnect
+    setError,
+    handleConnect,
+    handleDisconnect,
+    isConnected,
+    handleCheckConnection
   };
 };

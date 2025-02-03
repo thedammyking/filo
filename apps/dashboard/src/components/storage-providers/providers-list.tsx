@@ -3,16 +3,20 @@
 import type React from 'react';
 import { STORAGE_PROVIDER_DETAILS } from '@filo/libs/constants';
 import { Button } from '@filo/ui/components/button';
+import { cn } from '@filo/ui/lib/utils';
 import { uniqueId } from 'lodash';
 import Image from 'next/image';
 
-import { useOnboardingContext } from './onboarding-provider';
+import { useStorageProvidersContext } from './context-provider';
 
-const CloudProvidersList: React.FC = () => {
-  const { setSelected, selected } = useOnboardingContext();
+const ProvidersList: React.FC<Omit<React.ComponentProps<'div'>, 'children'>> = ({
+  className,
+  ...props
+}) => {
+  const { setSelected, selected } = useStorageProvidersContext();
 
   return (
-    <div className='flex justify-center gap-x-[30px]'>
+    <div className={cn('flex justify-center gap-x-[30px]', className)} {...props}>
       {Object.values(STORAGE_PROVIDER_DETAILS).map(provider => (
         <Button
           type='button'
@@ -28,7 +32,6 @@ const CloudProvidersList: React.FC = () => {
             width={50}
             height={50}
             className='size-[50px]'
-            objectFit='fill'
           />
           <h3>{provider?.name}</h3>
         </Button>
@@ -37,6 +40,6 @@ const CloudProvidersList: React.FC = () => {
   );
 };
 
-CloudProvidersList.displayName = 'CloudProvidersList';
+ProvidersList.displayName = 'ProvidersList';
 
-export default CloudProvidersList;
+export default ProvidersList;

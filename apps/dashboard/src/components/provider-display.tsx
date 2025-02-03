@@ -8,7 +8,6 @@ interface ProviderDisplayProps {
   image?: {
     width?: number;
     height?: number;
-    objectFit?: 'fill' | 'contain' | 'cover' | 'none' | 'scale-down';
   };
   classNames?: {
     root?: string;
@@ -36,7 +35,6 @@ export const ProviderDisplay = ({
         width={image?.width || 30}
         height={image?.height || 30}
         className={classNames?.image || 'size-[30px]'}
-        objectFit={image?.objectFit || 'fill'}
       />
       <p
         className={cn(

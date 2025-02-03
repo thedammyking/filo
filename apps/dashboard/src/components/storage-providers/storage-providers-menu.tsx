@@ -11,11 +11,11 @@ import { ChevronDown } from 'lucide-react';
 import { CLOUD_PROVIDER_COOKIE_NAME } from '@/lib/constants';
 import type { CloudProvider } from '@/types/interfaces';
 
-import { SettingsIcon } from './svgs/settings-icon';
-import { ManageStorageDialog } from './manage-storage-dialog';
-import { ProviderDisplay } from './provider-display';
+import { ManageStorageDialog } from '../manage-storage-dialog';
+import { ProviderDisplay } from '../provider-display';
+import { SettingsIcon } from '../svgs/settings-icon';
 
-interface CloudProviderMenuProps {
+interface StorageProviderMenuProps {
   providers: CloudProvider[];
 }
 
@@ -27,14 +27,14 @@ const getCloudProviderCookie = () => {
   return Cookies.get(CLOUD_PROVIDER_COOKIE_NAME) as StorageProvider;
 };
 
-const CloudProviderMenu: React.FC<CloudProviderMenuProps> = ({ providers = [] }) => {
+const StorageProviderMenu: React.FC<StorageProviderMenuProps> = ({ providers = [] }) => {
   const [selectedCloudProvider, setSelectedCloudProvider] = React.useState<StorageProvider | null>(
     getCloudProviderCookie()
   );
 
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const [isManageStorageDialogOpen, setIsManageStorageDialogOpen] = React.useState(true);
+  const [isManageStorageDialogOpen, setIsManageStorageDialogOpen] = React.useState(false);
 
   const handleOpenManageStorageDialog = React.useCallback(() => {
     setIsManageStorageDialogOpen(true);
@@ -73,7 +73,7 @@ const CloudProviderMenu: React.FC<CloudProviderMenuProps> = ({ providers = [] })
           {activeCloudProvider ? (
             <ProviderDisplay provider={activeCloudProvider.provider} isActive />
           ) : (
-            <span>Select a cloud provider</span>
+            <span>Select storage provider</span>
           )}
           <ChevronDown className='size-4 transition-transform duration-200 group-data-[state=open]:rotate-180' />
         </PopoverTrigger>
@@ -111,4 +111,4 @@ const CloudProviderMenu: React.FC<CloudProviderMenuProps> = ({ providers = [] })
   );
 };
 
-export default CloudProviderMenu;
+export default StorageProviderMenu;

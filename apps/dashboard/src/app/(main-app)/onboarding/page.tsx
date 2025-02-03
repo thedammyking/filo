@@ -7,10 +7,10 @@ import {
   CardTitle
 } from '@filo/ui/components/card';
 
-import CloudProvidersList from '@/components/onboarding/cloud-providers-list';
-import LogoutButton from '@/components/onboarding/logout-button';
-import OnboardingProvider from '@/components/onboarding/onboarding-provider';
-import ProviderConnectButton from '@/components/onboarding/provider-connect-button';
+import OnboardingDoneButton from '@/components/onboarding-done-button';
+import ConnectButton from '@/components/storage-providers/connection-button';
+import StorageProvidersContextProvider from '@/components/storage-providers/context-provider';
+import ProvidersList from '@/components/storage-providers/providers-list';
 
 export default async function OnboardingPage() {
   return (
@@ -21,15 +21,15 @@ export default async function OnboardingPage() {
           Select a storage and connect to start using Filo
         </CardDescription>
       </CardHeader>
-      <OnboardingProvider>
+      <StorageProvidersContextProvider>
         <CardContent>
-          <CloudProvidersList />
+          <ProvidersList />
         </CardContent>
         <CardFooter className='flex flex-col items-center justify-center gap-2'>
-          <ProviderConnectButton />
-          <LogoutButton />
+          <ConnectButton />
+          <OnboardingDoneButton />
         </CardFooter>
-      </OnboardingProvider>
+      </StorageProvidersContextProvider>
     </Card>
   );
 }

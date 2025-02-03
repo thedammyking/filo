@@ -217,11 +217,15 @@ export class GoogleDriveProvider implements IStorageProvider {
     if (storage) await this.storageRepository.remove(storage);
   }
 
-  private async revokeToken(token: string): Promise<void> {
+  private async revokeToken(token: string, userId: string): Promise<void> {
     if (!token) return;
 
     try {
       await this.oauth2Client.revokeToken(token);
+      await this.storageRepository.delete({
+        userId,
+        provider: STORAGE_PROVIDER.GOOGLE_DRIVE
+      });
     } catch (error) {
       this.logger.warn('Failed to revoke token', {
         error: error.message,
@@ -257,8 +261,8 @@ export class GoogleDriveProvider implements IStorageProvider {
 
     // Revoke both tokens
     await Promise.all([
-      this.revokeToken(storage.accessToken),
-      this.revokeToken(storage.refreshToken)
+      this.revokeToken(storage.accessToken, userId),
+      this.revokeToken(storage.refreshToken, userId)
     ]);
 
     // Remove storage record
