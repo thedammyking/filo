@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { createServerActionProcedure } from 'zsa';
 
-export const authedProcedure = createServerActionProcedure().handler(async () => {
+export const authenticatedProcedure = createServerActionProcedure().handler(async () => {
   try {
     const { userId, getToken } = await auth();
 

@@ -4,11 +4,11 @@ import { cache } from 'react';
 
 import type { CloudProvider } from '@/types/interfaces';
 
-import { authedProcedure } from '../procedures/auth';
+import { authenticatedProcedure } from '../procedures/auth';
 import * as storageProviderService from '../services/storage-provider';
 
 export const getCloudProviders = cache(
-  authedProcedure.createServerAction().handler(async ({ ctx }): Promise<CloudProvider[]> => {
+  authenticatedProcedure.createServerAction().handler(async ({ ctx }): Promise<CloudProvider[]> => {
     const { token } = ctx;
     try {
       const response = await storageProviderService.getCloudProviders(token);

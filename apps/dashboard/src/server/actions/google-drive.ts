@@ -9,7 +9,7 @@ import type {
 import { STORAGE_PROVIDER } from '@filo/libs/constants';
 import { z } from 'zod';
 
-import { authedProcedure } from '../procedures/auth';
+import { authenticatedProcedure } from '../procedures/auth';
 import {
   checkStorageProviderConnection,
   connectStorageProvider,
@@ -17,7 +17,7 @@ import {
   storageAuthCallback
 } from '../services/storage-provider';
 
-export const getGoogleDriveAuthUrl = authedProcedure
+export const getGoogleDriveAuthUrl = authenticatedProcedure
   .createServerAction()
   .handler(async ({ ctx }): Promise<GetAuthUrlResponse> => {
     const { token } = ctx;
@@ -30,7 +30,7 @@ export const getGoogleDriveAuthUrl = authedProcedure
     }
   });
 
-export const googleDriveAuthCallback = authedProcedure
+export const googleDriveAuthCallback = authenticatedProcedure
   .createServerAction()
   .input(z.object({ code: z.string() }))
   .handler(async ({ ctx, input }): Promise<SaveStorageTokensResponse> => {
@@ -47,7 +47,7 @@ export const googleDriveAuthCallback = authedProcedure
     }
   });
 
-export const checkGoogleDriveConnection = authedProcedure
+export const checkGoogleDriveConnection = authenticatedProcedure
   .createServerAction()
   .handler(async ({ ctx }): Promise<CheckConnectionResponse> => {
     const { token } = ctx;
@@ -60,7 +60,7 @@ export const checkGoogleDriveConnection = authedProcedure
     }
   });
 
-export const disconnectGoogleDrive = authedProcedure
+export const disconnectGoogleDrive = authenticatedProcedure
   .createServerAction()
   .handler(async ({ ctx }): Promise<RemoveConnectionResponse> => {
     const { token } = ctx;
