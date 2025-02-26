@@ -14,7 +14,7 @@ const AppHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = async ({
   const [cloudProviders] = await getCloudProviders();
   const user = await currentUser();
 
-  const isOnboarding = user?.publicMetadata.onboardingComplete;
+  const isOnboardingComplete = user?.publicMetadata.onboardingComplete;
 
   return (
     <header className={cn('flex w-full items-center justify-between p-4', className)} {...props}>
@@ -22,8 +22,8 @@ const AppHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = async ({
         <h1 className='text-2xl font-bold'>Filo</h1>
       </Link>
       <div className='flex shrink-0 items-center gap-5'>
-        {isOnboarding && <StorageProviderMenu providers={cloudProviders || []} />}
         <SignedIn>
+          {isOnboardingComplete && <StorageProviderMenu providers={cloudProviders || []} />}
           <UserButton
             signInUrl='/login'
             appearance={{
