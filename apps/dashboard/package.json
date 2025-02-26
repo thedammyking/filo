@@ -15,6 +15,8 @@
     "@clerk/themes": "^2.2.9",
     "@filo/ui": "workspace:*",
     "@t3-oss/env-nextjs": "^0.11.1",
+    "@tanstack/react-query": "^5.66.9",
+    "@tanstack/react-query-devtools": "^5.66.9",
     "js-cookie": "^3.0.5",
     "lodash": "^4.17.21",
     "lucide-react": "0.473.0",
