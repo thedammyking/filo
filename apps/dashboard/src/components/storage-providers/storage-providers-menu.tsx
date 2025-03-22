@@ -9,15 +9,11 @@ import { uniqueId } from 'lodash';
 import { ChevronDown } from 'lucide-react';
 
 import { CLOUD_PROVIDER_COOKIE_NAME } from '@/lib/constants';
-import type { CloudProvider } from '@/types/interfaces';
+import { useCloudProviders } from '@/lib/hooks/use-cloud-providers';
 
 import { ManageStorageDialog } from '../manage-storage-dialog';
 import { ProviderDisplay } from '../provider-display';
 import { SettingsIcon } from '../svgs/settings-icon';
-
-interface StorageProviderMenuProps {
-  providers: CloudProvider[];
-}
 
 const setCloudProviderCookie = (provider: StorageProvider) => {
   Cookies.set(CLOUD_PROVIDER_COOKIE_NAME, provider);
@@ -27,7 +23,9 @@ const getCloudProviderCookie = () => {
   return Cookies.get(CLOUD_PROVIDER_COOKIE_NAME) as StorageProvider;
 };
 
-const StorageProviderMenu: React.FC<StorageProviderMenuProps> = ({ providers = [] }) => {
+const StorageProviderMenu: React.FC = () => {
+  const { data: providers } = useCloudProviders();
+
   const [selectedCloudProvider, setSelectedCloudProvider] = React.useState<StorageProvider | null>(
     getCloudProviderCookie()
   );
@@ -42,11 +40,11 @@ const StorageProviderMenu: React.FC<StorageProviderMenuProps> = ({ providers = [
   }, []);
 
   const activeCloudProvider = React.useMemo(() => {
-    return providers.find(provider => provider.provider === selectedCloudProvider);
+    return providers?.find(provider => provider.provider === selectedCloudProvider);
   }, [providers, selectedCloudProvider]);
 
   const providersListToSelect = React.useMemo(() => {
-    return providers.filter(provider => provider.provider !== selectedCloudProvider);
+    return providers?.filter(provider => provider.provider !== selectedCloudProvider);
   }, [providers, selectedCloudProvider]);
 
   const handleSelectCloudProvider = React.useCallback(
@@ -59,7 +57,7 @@ const StorageProviderMenu: React.FC<StorageProviderMenuProps> = ({ providers = [
   );
 
   React.useEffect(() => {
-    if (!activeCloudProvider && providers.length > 0) {
+    if (!activeCloudProvider && providers?.length) {
       setCloudProviderCookie(providers[0].provider);
       setSelectedCloudProvider(providers[0].provider);
     }
@@ -81,7 +79,7 @@ const StorageProviderMenu: React.FC<StorageProviderMenuProps> = ({ providers = [
           className='max-w-[300px] overflow-hidden rounded-xl border-border p-0 outline-none'
           align='end'
         >
-          {providersListToSelect.map(provider => (
+          {providersListToSelect?.map(provider => (
             <Button
               key={uniqueId('cloud-provider-')}
               onClick={handleSelectCloudProvider(provider.provider)}

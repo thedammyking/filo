@@ -3,7 +3,8 @@ import { currentUser } from '@clerk/nextjs/server';
 import { cn } from '@filo/ui/lib/utils';
 import Link from 'next/link';
 
-import { getCloudProviders } from '@/server/actions/storage-provider';
+import queryClient from '@/lib/query-client';
+import { cloudProvidersQueryOptions } from '@/lib/query-options/cloud-providers';
 
 import StorageProviderMenu from './storage-providers/storage-providers-menu';
 
@@ -11,7 +12,8 @@ const AppHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = async ({
   className,
   ...props
 }) => {
-  const [cloudProviders] = await getCloudProviders();
+  void (await queryClient.prefetchQuery(cloudProvidersQueryOptions()));
+
   const user = await currentUser();
 
   const isOnboardingComplete = user?.publicMetadata.onboardingComplete;
@@ -23,7 +25,7 @@ const AppHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = async ({
       </Link>
       <div className='flex shrink-0 items-center gap-5'>
         <SignedIn>
-          {isOnboardingComplete && <StorageProviderMenu providers={cloudProviders || []} />}
+          {isOnboardingComplete && <StorageProviderMenu />}
           <UserButton
             signInUrl='/login'
             appearance={{

@@ -1,3 +1,4 @@
+import { Toaster } from '@filo/ui/components/sonner';
 import { Figtree } from 'next/font/google';
 
 import AppLayout from '@/components/app-layout';
@@ -25,6 +26,7 @@ export default function RootLayout({
         <Providers>
           <AppLayout>{children}</AppLayout>
           <ThemeSwitcher />
+          <Toaster />
         </Providers>
       </body>
     </html>
