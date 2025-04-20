@@ -4,7 +4,7 @@ import { cn } from '@filo/ui/lib/utils';
 import Link from 'next/link';
 
 import queryClient from '@/lib/query-client';
-import { cloudProvidersQueryOptions } from '@/lib/query-options/cloud-providers';
+import { cloudProvidersQueryOptions } from '@/lib/queries/query-options/cloud-providers';
 
 import StorageProviderMenu from './storage-providers/storage-providers-menu';
 
