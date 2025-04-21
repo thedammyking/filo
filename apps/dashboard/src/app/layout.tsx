@@ -1,7 +1,6 @@
 import { Toaster } from '@filo/ui/components/sonner';
 import { Figtree } from 'next/font/google';
 
-import AppLayout from '@/components/app-layout';
 import { Providers } from '@/components/providers';
 import ThemeSwitcher from '@/components/theme-switcher';
 
@@ -24,7 +23,7 @@ export default function RootLayout({
     <html lang='en' suppressHydrationWarning>
       <body className={`${fontSans.variable} font-sans antialiased`}>
         <Providers>
-          <AppLayout>{children}</AppLayout>
+          {children}
           <ThemeSwitcher />
           <Toaster />
         </Providers>

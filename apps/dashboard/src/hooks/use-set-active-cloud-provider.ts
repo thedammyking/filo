@@ -3,8 +3,8 @@ import { useMutation } from '@tanstack/react-query';
 
 import { setActiveCloudProvider } from '@/server/actions/storage-provider';
 
-import { cloudProviderKeys } from '../queries/query-keys/cloud-providers';
 import queryClient from '../lib/query-client';
+import { cloudProviderKeys } from '../queries/query-keys/cloud-providers';
 
 export const useSetActiveCloudProvider = () => {
   return useMutation({

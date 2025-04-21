@@ -20,7 +20,6 @@ export const activeCloudProviderQueryOptions = () =>
     queryFn: async () => {
       const [data, error] = await getActiveCloudProvider();
       if (error) throw error;
-      console.log('activeCloudProviderQueryOptions', data);
       return data;
     }
   });

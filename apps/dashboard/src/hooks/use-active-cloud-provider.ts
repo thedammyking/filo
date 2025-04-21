@@ -12,8 +12,6 @@ export const useActiveCloudProvider = (
   const { data: activeProvider } = useQuery(activeCloudProviderQueryOptions());
   const provider = providers.find(provider => provider.provider === activeProvider);
 
-  console.log('useActiveCloudProvider', activeProvider);
-
   const handleSetActiveProvider = React.useCallback(() => {
     if (!provider && providers.length > 0) {
       setActiveProvider(providers[0]);

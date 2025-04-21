@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Technical stack
+- Turborepo for monorepo and build system
+- PNPM for package manager
+- NextJS for the frontend framework
+- Radix UI for design system component
+- Storybook for design system documentation
+- TailwindCSS v3 for CSS framework
+- Separate databases for dev, test, and prod
