@@ -11,8 +11,7 @@ export const getCloudProviders = cache(
   authenticatedProcedure.createServerAction().handler(async ({ ctx }): Promise<CloudProvider[]> => {
     const { token } = ctx;
     try {
-      const response = await storageProviderService.getCloudProviders(token);
-      const { data } = await response.json();
+      const { data } = await storageProviderService.getCloudProviders(token);
 
       return data;
     } catch (error: any) {
