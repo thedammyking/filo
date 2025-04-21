@@ -7,7 +7,10 @@ const AppHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   ...props
 }) => {
   return (
-    <header className={cn('flex w-full items-center justify-between p-4', className)} {...props}>
+    <header
+      className={cn('flex h-[78px] w-full items-center justify-between p-4', className)}
+      {...props}
+    >
       <Link href='/dashboard' className='flex items-center gap-2'>
         <h1 className='text-2xl font-bold'>Filo</h1>
       </Link>

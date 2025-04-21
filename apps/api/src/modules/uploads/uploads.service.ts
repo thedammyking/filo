@@ -29,7 +29,8 @@ export class UploadsService {
       const uploads = links.map(link =>
         this.uploadsRepository.create({
           ...createUploadDto,
-          link,
+          link: link.link,
+          type: link.type,
           userId,
           storage
         })

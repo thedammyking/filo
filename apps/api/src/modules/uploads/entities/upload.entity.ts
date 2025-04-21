@@ -14,7 +14,7 @@ export class Upload extends BaseEntity {
   @Column({
     type: 'enum',
     enum: UPLOAD_TYPE,
-    default: UPLOAD_TYPE.REGULAR
+    default: UPLOAD_TYPE.FILE
   })
   type: UploadType;
 

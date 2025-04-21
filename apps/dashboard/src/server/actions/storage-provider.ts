@@ -6,7 +6,7 @@ import { STORAGE_PROVIDER } from '@filo/libs/constants';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 
-import { CLOUD_PROVIDER_COOKIE_NAME } from '@/lib/constants';
+import { CLOUD_PROVIDER_COOKIE_NAME, CLOUD_PROVIDER_COOKIE_OPTIONS } from '@/lib/constants';
 import type { CloudProvider } from '@/types/interfaces';
 
 import { authenticatedProcedure } from '../procedures/auth';
@@ -41,12 +41,11 @@ export const setActiveCloudProvider = cache(
     .input(z.object({ provider: z.nativeEnum(STORAGE_PROVIDER) }))
     .handler(async ({ input, ctx }) => {
       const cookieStore = await cookies();
-      cookieStore.set(`${CLOUD_PROVIDER_COOKIE_NAME}-${ctx.userId}`, input.provider, {
-        httpOnly: true,
-        secure: true,
-        maxAge: 60 * 60 * 24 * 30,
-        path: '/'
-      });
+      cookieStore.set(
+        `${CLOUD_PROVIDER_COOKIE_NAME}-${ctx.userId}`,
+        input.provider,
+        CLOUD_PROVIDER_COOKIE_OPTIONS
+      );
       return true;
     })
 );
