@@ -17,7 +17,7 @@ import { DEFAULT_FILE_URL, FILE_URL_TYPE_OPTIONS } from '@/lib/constants';
 import type { FileUrlInputSchema } from '@/types/interfaces';
 import { fileUrlInputSchema } from '@/validations/file-url-input';
 
-import { Caption } from '../caption';
+import { Caption } from './caption';
 
 export function FileUrlForm() {
   const {

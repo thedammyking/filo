@@ -1,4 +1,4 @@
-import { FileUrlForm } from '@/components/file-url-form/file-url-form';
+import { FileUrlForm } from '@/components/file-url-form';
 
 export default async function Page() {
   return (
