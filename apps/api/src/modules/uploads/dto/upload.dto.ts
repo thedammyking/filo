@@ -60,6 +60,9 @@ export class UploadResponse {
   @ApiProperty()
   link: string;
 
+  @ApiProperty({ nullable: true })
+  fileName: string;
+
   @ApiProperty({ enum: UPLOAD_TYPE })
   type: UploadType;
 
