@@ -1,7 +1,7 @@
 'use client';
 import type * as React from 'react';
 import { ClerkLoaded, ClerkLoading, ClerkProvider as ClerkNextProvider } from '@clerk/nextjs';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { dehydrate, HydrationBoundary, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 
@@ -9,6 +9,7 @@ import { useClerkTheme } from '@/hooks/use-clerk-theme';
 import queryClient from '@/lib/query-client';
 
 import DefaultLoader from './default-loader';
+import { QueryCleaner } from './query-cleaner';
 
 const ClerkProvider = ({ children }: { children: React.ReactNode }) => {
   const clerkTheme = useClerkTheme();
@@ -52,7 +53,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <ClerkProvider>
         <QueryClientProvider client={queryClient}>
-          {children}
+          <QueryCleaner />
+          <HydrationBoundary state={dehydrate(queryClient)}>{children}</HydrationBoundary>
           <ReactQueryDevtools />
         </QueryClientProvider>
       </ClerkProvider>

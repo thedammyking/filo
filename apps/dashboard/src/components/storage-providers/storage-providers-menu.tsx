@@ -4,31 +4,24 @@ import React from 'react';
 import type { StorageProvider } from '@filo/interfaces';
 import { Button } from '@filo/ui/components/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@filo/ui/components/popover';
-import Cookies from 'js-cookie';
 import { uniqueId } from 'lodash';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 
-import { CLOUD_PROVIDER_COOKIE_NAME } from '@/lib/constants';
-import { useCloudProviders } from '@/lib/hooks/use-cloud-providers';
+import { useActiveCloudProvider } from '@/hooks/use-active-cloud-provider';
+import { useCloudProviders } from '@/hooks/use-cloud-providers';
+import { useSetActiveCloudProvider } from '@/hooks/use-set-active-cloud-provider';
 
 import { ManageStorageDialog } from '../manage-storage-dialog';
 import { ProviderDisplay } from '../provider-display';
 import { SettingsIcon } from '../svgs/settings-icon';
 
-const setCloudProviderCookie = (provider: StorageProvider) => {
-  Cookies.set(CLOUD_PROVIDER_COOKIE_NAME, provider);
-};
-
-const getCloudProviderCookie = () => {
-  return Cookies.get(CLOUD_PROVIDER_COOKIE_NAME) as StorageProvider;
-};
-
 const StorageProviderMenu: React.FC = () => {
   const { data: providers } = useCloudProviders();
-
-  const [selectedCloudProvider, setSelectedCloudProvider] = React.useState<StorageProvider | null>(
-    getCloudProviderCookie()
-  );
+  const { mutateAsync: setActiveCloudProvider, isPending: isSettingActiveCloudProvider } =
+    useSetActiveCloudProvider();
+  const activeCloudProvider = useActiveCloudProvider(providers, provider => {
+    setActiveCloudProvider(provider.provider);
+  });
 
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -39,30 +32,20 @@ const StorageProviderMenu: React.FC = () => {
     setIsOpen(false);
   }, []);
 
-  const activeCloudProvider = React.useMemo(() => {
-    return providers?.find(provider => provider.provider === selectedCloudProvider);
-  }, [providers, selectedCloudProvider]);
-
   const providersListToSelect = React.useMemo(() => {
-    return providers?.filter(provider => provider.provider !== selectedCloudProvider);
-  }, [providers, selectedCloudProvider]);
+    return providers?.filter(provider => provider.provider !== activeCloudProvider?.provider);
+  }, [providers, activeCloudProvider]);
 
   const handleSelectCloudProvider = React.useCallback(
-    (provider: StorageProvider) => () => {
-      setSelectedCloudProvider(provider);
-      setCloudProviderCookie(provider);
-      setIsOpen(false);
+    (provider: StorageProvider) => async () => {
+      await setActiveCloudProvider(provider, {
+        onSuccess: () => {
+          setIsOpen(false);
+        }
+      });
     },
-    []
+    [setActiveCloudProvider]
   );
-
-  React.useEffect(() => {
-    if (!activeCloudProvider && providers?.length) {
-      setCloudProviderCookie(providers[0].provider);
-      setSelectedCloudProvider(providers[0].provider);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <>
@@ -78,6 +61,7 @@ const StorageProviderMenu: React.FC = () => {
         <PopoverContent
           className='max-w-[300px] overflow-hidden rounded-xl border-border p-0 outline-none'
           align='end'
+          sideOffset={2}
         >
           {providersListToSelect?.map(provider => (
             <Button
@@ -85,16 +69,20 @@ const StorageProviderMenu: React.FC = () => {
               onClick={handleSelectCloudProvider(provider.provider)}
               tabIndex={0}
               variant='ghost'
-              className='text-md h-max min-h-10 w-full justify-start gap-[24px] rounded-none border-b border-border px-[30px] py-4 font-medium text-accent-foreground/75 last:border-b-0 hover:bg-accent/50 hover:text-accent-foreground/75'
+              className='text-md h-max min-h-10 w-full justify-start gap-4 rounded-none border-b border-border px-[30px] py-4 font-medium text-accent-foreground/75 last:border-b-0 hover:bg-accent/50 hover:text-accent-foreground/75'
             >
-              <ProviderDisplay provider={provider.provider} />
+              <ProviderDisplay provider={provider.provider} />{' '}
+              <Loader2
+                className='size-4 animate-spin data-[hidden=true]:hidden'
+                data-hidden={!isSettingActiveCloudProvider}
+              />
             </Button>
           ))}
           <Button
             tabIndex={0}
             onClick={handleOpenManageStorageDialog}
             variant='ghost'
-            className='text-md h-max min-h-10 w-full justify-start gap-[24px] rounded-none border-b border-border px-[30px] py-4 font-medium text-accent-foreground/75 last:border-b-0 hover:bg-accent/50 hover:text-accent-foreground/75'
+            className='text-md h-max min-h-10 w-full justify-start gap-6 rounded-none border-b border-border px-[30px] py-4 font-medium text-accent-foreground/75 last:border-b-0 hover:bg-accent/50 hover:text-accent-foreground/75'
           >
             <SettingsIcon className='size-4' />
             Manage storages

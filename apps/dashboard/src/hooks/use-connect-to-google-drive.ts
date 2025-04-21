@@ -106,7 +106,6 @@ export const useConnectToGoogleDrive = () => {
     setError(null);
     try {
       const [data, error] = await checkGoogleDriveConnection();
-      console.log('data', data);
 
       if (error) {
         setError(error.message);
