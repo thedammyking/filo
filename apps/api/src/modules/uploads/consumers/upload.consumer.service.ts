@@ -1,6 +1,6 @@
 import { Processor, WorkerHost, OnWorkerEvent, InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { UPLOAD_JOB, UPLOAD_QUEUE } from '@/queue/queue.constants';
 import type { UploadJobData } from '@/queue/producers/upload.producer.service';
 import { UploadsService } from '../uploads.service';
@@ -8,9 +8,28 @@ import { StorageService } from '@/modules/storage/storage.service';
 import axios from 'axios';
 import { UPLOAD_STATUS } from '@filo/libs/constants';
 import { Upload } from '../entities/upload.entity';
-import { parse } from 'url';
+import { parse as parseUrl, URL } from 'url';
 import { basename } from 'path';
 import contentDisposition from 'content-disposition';
+import { promises as dns } from 'dns';
+import * as ipaddr from 'ipaddr.js';
+
+// Define restricted IP ranges
+const RESTRICTED_IP_RANGES: { [key: string]: string } = {
+  // Standard private ranges
+  private: 'private',
+  loopback: 'loopback',
+  // Carrier-Grade NAT
+  carrierGradeNat: '100.64.0.0/10',
+  // Link-local
+  linkLocal: 'linkLocal',
+  // Reserved
+  reserved: 'reserved',
+  // Cloud Metadata Services (common ones)
+  awsMetadata: '169.254.169.254/32',
+  gcpMetadata: '169.254.169.254/32', // Same IP used by GCP/Azure/etc.
+  aliyunMetadata: '100.100.100.200/32'
+};
 
 @Injectable()
 @Processor(UPLOAD_QUEUE)
@@ -43,7 +62,7 @@ export class UploadConsumerService extends WorkerHost {
 
     if (!filename) {
       try {
-        const parsedUrl = parse(uploadLink);
+        const parsedUrl = parseUrl(uploadLink);
         if (parsedUrl.pathname) {
           const base = basename(parsedUrl.pathname);
           if (base && base !== '/' && base.includes('.')) {
@@ -57,6 +76,41 @@ export class UploadConsumerService extends WorkerHost {
     }
 
     return filename;
+  }
+
+  /**
+   * Checks if a given IP address falls into restricted ranges.
+   */
+  private isIpRestricted(ipAddress: string): boolean {
+    try {
+      const addr = ipaddr.parse(ipAddress);
+
+      // Check against common restricted ranges using ipaddr.js
+      for (const rangeName in RESTRICTED_IP_RANGES) {
+        const rangeValue = RESTRICTED_IP_RANGES[rangeName];
+        if (rangeValue.includes('/')) {
+          // CIDR range check
+          const subnet = ipaddr.parseCIDR(rangeValue);
+          if (addr.match(subnet)) {
+            this.logger.warn(
+              `IP ${ipAddress} matches restricted CIDR range: ${rangeName} (${rangeValue})`
+            );
+            return true;
+          }
+        } else {
+          // Standard range check (private, loopback, etc.)
+          if (addr.range() === rangeValue) {
+            this.logger.warn(`IP ${ipAddress} matches restricted range: ${rangeName}`);
+            return true;
+          }
+        }
+      }
+      return false;
+    } catch (e) {
+      this.logger.error(`Failed to parse or check IP address: ${ipAddress}`, e);
+      // Treat parse errors as potentially unsafe
+      return true;
+    }
   }
 
   async process(job: Job<UploadJobData>): Promise<void> {
@@ -77,6 +131,38 @@ export class UploadConsumerService extends WorkerHost {
         );
       }
 
+      // --- SSRF Protection: Check resolved IP before any request ---
+      let urlObject: URL;
+      try {
+        urlObject = new URL(upload.link);
+      } catch (e) {
+        throw new BadRequestException(`Invalid URL format: ${upload.link}`);
+      }
+      const hostname = urlObject.hostname;
+
+      if (!hostname) {
+        throw new BadRequestException(`Could not extract hostname from URL: ${upload.link}`);
+      }
+
+      this.logger.debug(`Resolving IP for hostname: ${hostname} (from ${upload.link})`);
+      let resolvedIp: string;
+      try {
+        // Use lookup with family 4 to prioritize IPv4 if applicable, but will handle IPv6 too
+        const lookupResult = await dns.lookup(hostname);
+        resolvedIp = lookupResult.address;
+        this.logger.debug(`Resolved ${hostname} to IP: ${resolvedIp}`);
+      } catch (dnsError) {
+        this.logger.error(`DNS lookup failed for hostname: ${hostname}`, dnsError);
+        throw new Error(`Could not resolve hostname: ${hostname}`); // Fail job if DNS fails
+      }
+
+      if (this.isIpRestricted(resolvedIp)) {
+        throw new BadRequestException(
+          `URL resolves to a restricted IP address (${resolvedIp}). Access denied.`
+        );
+      }
+      // --- End SSRF Protection ---
+
       if (upload.status !== UPLOAD_STATUS.PENDING) {
         this.logger.warn(
           `Upload ${uploadId} is not in PENDING state (current: ${upload.status}). Skipping.`
@@ -84,8 +170,13 @@ export class UploadConsumerService extends WorkerHost {
         return;
       }
 
+      // --- Filename Extraction Logic (HEAD request) ---
       try {
         this.logger.debug(`Attempting to get headers for filename extraction from: ${upload.link}`);
+        // We already resolved the IP, but axios typically handles this again.
+        // For stricter protection against DNS rebinding, one might use the resolved IP directly
+        // if the underlying http agent supports it, or pass a custom agent.
+        // For simplicity here, we rely on the check performed before this request.
         const headResponse = await axios.head(upload.link, { timeout: 10000 });
         derivedFilename = this.extractFilename(upload.link, headResponse.headers);
 
@@ -104,22 +195,28 @@ export class UploadConsumerService extends WorkerHost {
         );
       }
       const finalFilename = derivedFilename || upload.fileName || `upload_${uploadId}`;
+      // --- End Filename Extraction ---
 
+      // Set status to PROCESSING
       await this.uploadsService.update(
         uploadId,
         { status: UPLOAD_STATUS.PROCESSING },
         upload.userId
       );
 
+      // --- Download Stream ---
       this.logger.debug(`Starting file stream download from: ${upload.link}`);
+      // Again, axios will perform DNS lookup here. The prior check adds a layer of safety.
       const response = await axios({
         method: 'get',
         url: upload.link,
         responseType: 'stream',
-        timeout: 300000
+        timeout: 300000 // 5-minute timeout
       });
       const fileStream = response.data;
+      // --- End Download Stream ---
 
+      // --- Upload Stream ---
       this.logger.debug(
         `Starting file stream upload to storage ${upload.storage.id} with filename: ${finalFilename}`
       );
@@ -130,17 +227,21 @@ export class UploadConsumerService extends WorkerHost {
         userId: upload.userId,
         mimetype: response.headers['content-type']
       });
+      // --- End Upload Stream ---
 
+      // --- Final Update ---
       await this.uploadsService.update(uploadId, { status: UPLOAD_STATUS.SUCCESS }, upload.userId);
       this.logger.log(
         `Successfully processed job ${job.id} for upload ${uploadId} as ${finalFilename}`
       );
+      // --- End Final Update ---
     } catch (error) {
       this.logger.error(
         `Failed to process job ${job.id} for upload ${uploadId}: ${error.message}`,
         error.stack
       );
-      if (upload && upload.userId) {
+      // Update to FAILED, only if not already successful and error is not Bad Request (invalid URL/IP)
+      if (upload && upload.userId && !(error instanceof BadRequestException)) {
         const currentUpload = await this.uploadsService._internalFindOneById(uploadId);
         if (currentUpload && currentUpload.status !== UPLOAD_STATUS.SUCCESS) {
           try {
@@ -157,6 +258,7 @@ export class UploadConsumerService extends WorkerHost {
           }
         }
       }
+      // Re-throw the error so the job is marked as failed by BullMQ
       throw error;
     }
   }
