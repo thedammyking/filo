@@ -1,14 +1,20 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  Logger,
+  InternalServerErrorException
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { google } from 'googleapis';
+import { google, drive_v3 } from 'googleapis';
 import { Repository, LessThan } from 'typeorm';
 import { addDays } from 'date-fns';
+import type { Readable } from 'stream';
 
 import { STORAGE_PROVIDER } from '@filo/libs/constants';
 
 import { Storage } from '../entities/storage.entity';
-import { IStorageProvider } from '@filo/interfaces';
+import { IStorageProvider, Storage as StorageInterface } from '@filo/interfaces';
 import { GoogleDriveException } from '../exceptions/google-drive.exception';
 import type {
   GetAuthUrlResponse,
@@ -18,7 +24,12 @@ import type {
   StorageTokens
 } from '@filo/interfaces';
 
-// Add custom exceptions at the top
+interface GoogleDriveUploadStreamOptions {
+  stream: Readable;
+  filename: string;
+  mimetype?: string;
+  storageDetails: StorageInterface;
+}
 
 @Injectable()
 export class GoogleDriveProvider implements IStorageProvider {
@@ -113,51 +124,65 @@ export class GoogleDriveProvider implements IStorageProvider {
     });
   }
 
-  async getStorageClient(userId: string): Promise<StorageClient> {
-    // Clean up expired tokens first
-    await this.cleanupExpiredTokens();
-
-    const storage = await this.storageRepository.findOne({
-      where: {
-        userId,
-        provider: STORAGE_PROVIDER.GOOGLE_DRIVE
-      }
-    });
-
-    if (!storage) {
-      throw new UnauthorizedException('No tokens found for this user');
-    }
-
-    if (storage.refreshTokenExpiresAt && new Date() > storage.refreshTokenExpiresAt) {
-      // Remove the expired storage
-      await this.storageRepository.remove(storage);
-      throw new UnauthorizedException(
-        'Refresh token has expired. Please reconnect your Google Drive account.'
-      );
-    }
-
+  private async ensureValidCredentials(storage: StorageInterface): Promise<void> {
     const tokens = {
       access_token: storage.accessToken,
       refresh_token: storage.refreshToken,
       expiry_date: storage.expiryDate
     };
 
-    if (tokens.expiry_date && Date.now() > tokens.expiry_date) {
+    if (!tokens.access_token) {
+      throw new UnauthorizedException('Missing access token.');
+    }
+
+    if (tokens.expiry_date && Date.now() >= tokens.expiry_date) {
+      this.logger.log(`Access token expired for user ${storage.userId}, attempting refresh.`);
+      if (!tokens.refresh_token) {
+        await this.handleInvalidGrant(storage.userId);
+        throw new UnauthorizedException(
+          'Access token expired and no refresh token available. Please reconnect account.'
+        );
+      }
       try {
-        const newTokens = await this.refreshAccessToken(userId);
-        tokens.access_token = newTokens.access_token;
-        tokens.expiry_date = newTokens.expiry_date;
+        this.oauth2Client.setCredentials({ refresh_token: tokens.refresh_token });
+        const { credentials } = await this.oauth2Client.refreshAccessToken();
+        await this.saveStorage(storage.userId, credentials);
+        tokens.access_token = credentials.access_token;
+        tokens.expiry_date = credentials.expiry_date;
+        this.logger.log(`Access token refreshed successfully for user ${storage.userId}.`);
       } catch (error) {
-        if (error.message.includes('invalid_grant')) {
+        this.logger.error(
+          `Failed to refresh access token for user ${storage.userId}: ${error.message}`,
+          error.stack
+        );
+        if (
+          error.response?.data?.error === 'invalid_grant' ||
+          error.message.includes('invalid_grant')
+        ) {
+          await this.handleInvalidGrant(storage.userId);
           throw new UnauthorizedException(
-            'Your Google Drive connection needs to be renewed. Please reconnect your account.'
+            'Could not refresh access token (invalid grant). Please reconnect account.'
           );
         }
-        throw error;
+        throw new InternalServerErrorException('Failed to refresh access token.');
       }
     }
 
     this.oauth2Client.setCredentials(tokens);
+  }
+
+  async getStorageClient(userId: string): Promise<StorageClient> {
+    await this.cleanupExpiredTokens();
+    const storage = await this.storageRepository.findOne({
+      where: { userId, provider: STORAGE_PROVIDER.GOOGLE_DRIVE }
+    });
+
+    if (!storage) {
+      throw new UnauthorizedException('No Google Drive connection found for this user.');
+    }
+
+    await this.ensureValidCredentials(storage);
+
     return google.drive({ version: 'v3', auth: this.oauth2Client });
   }
 
@@ -175,7 +200,6 @@ export class GoogleDriveProvider implements IStorageProvider {
         throw new GoogleDriveException('No refresh token found', 'NO_REFRESH_TOKEN');
       }
 
-      // Add rate limiting protection
       if (storage.lastUpdated && Date.now() - storage.lastUpdated.getTime() < 1000) {
         throw new GoogleDriveException('Too many token refresh attempts', 'RATE_LIMIT');
       }
@@ -192,7 +216,6 @@ export class GoogleDriveProvider implements IStorageProvider {
         throw new GoogleDriveException('Invalid refresh token', 'INVALID_GRANT');
       }
 
-      // Implement retry logic
       if (retryCount < this.MAX_REFRESH_RETRIES) {
         await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
         return this.refreshAccessToken(userId, retryCount + 1);
@@ -246,7 +269,6 @@ export class GoogleDriveProvider implements IStorageProvider {
       throw new GoogleDriveException('No Google Drive connection found');
     }
 
-    // Try to refresh token if expired
     if (Date.now() > storage.expiryDate) {
       try {
         const credentials = await this.refreshAccessToken(userId);
@@ -259,21 +281,75 @@ export class GoogleDriveProvider implements IStorageProvider {
       }
     }
 
-    // Revoke both tokens
     await Promise.all([
       this.revokeToken(storage.accessToken, userId),
       this.revokeToken(storage.refreshToken, userId)
     ]);
 
-    // Remove storage record
     await this.storageRepository.remove(storage);
     return { success: true };
   }
 
   async checkConnection(userId: string) {
-    const storage = await this.storageRepository.findOne({
-      where: { userId, provider: STORAGE_PROVIDER.GOOGLE_DRIVE }
-    });
-    return { connected: !!storage };
+    try {
+      const drive = await this.getStorageClient(userId);
+      await drive.files.list({ pageSize: 1, fields: 'files(id)' });
+      return { connected: true };
+    } catch (error) {
+      this.logger.warn(`Google Drive connection check failed for user ${userId}: ${error.message}`);
+      if (error instanceof UnauthorizedException || error instanceof GoogleDriveException) {
+        return { connected: false };
+      }
+      throw error;
+    }
+  }
+
+  async uploadStream(options: GoogleDriveUploadStreamOptions): Promise<drive_v3.Schema$File> {
+    const { stream, filename, mimetype, storageDetails } = options;
+    const { userId } = storageDetails;
+
+    this.logger.log(`Starting stream upload for user ${userId}, filename: ${filename}`);
+
+    try {
+      await this.ensureValidCredentials(storageDetails);
+
+      const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
+
+      const fileMetadata: drive_v3.Schema$File = {
+        name: filename
+      };
+
+      const media = {
+        mimeType: mimetype,
+        body: stream
+      };
+
+      const response = await drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: 'id, name, webViewLink, webContentLink, mimeType, size'
+      });
+
+      this.logger.log(
+        `Successfully uploaded file ${response.data.id} (${filename}) for user ${userId}`
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        `Google Drive stream upload failed for user ${userId}, filename ${filename}: ${error.message}`,
+        error.stack
+      );
+      if (error.response?.data?.error) {
+        const googleError = error.response.data.error;
+        throw new GoogleDriveException(
+          `Google API Error: ${googleError.message} (Code: ${googleError.code})`,
+          googleError.code
+        );
+      }
+      if (error instanceof UnauthorizedException || error instanceof GoogleDriveException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to upload file to Google Drive.');
+    }
   }
 }

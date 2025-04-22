@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@clerk/backend": "^1.23.7",
+    "@nestjs/bullmq": "^11.0.2",
     "@nestjs/common": "^11.0.5",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.5",
@@ -29,6 +30,8 @@
     "@nestjs/swagger": "^11.0.3",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/typeorm": "^11.0.0",
+    "axios": "^1.8.4",
+    "bullmq": "^5.49.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "date-fns": "^4.1.0",

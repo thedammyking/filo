@@ -6,6 +6,7 @@ import type {
   UPLOAD_TYPE
 } from '@filo/libs/constants';
 import type { google } from 'googleapis';
+import type { Readable } from 'stream';
 
 export type { User } from '@clerk/backend';
 
@@ -49,6 +50,15 @@ export interface RemoveConnectionResponse {
   success: boolean;
 }
 
+export interface Storage {
+  id: string;
+  userId: string;
+  provider: StorageProvider;
+  accessToken: string;
+  refreshToken?: string;
+  expiryDate?: number;
+}
+
 export interface IStorageProvider {
   getAuthUrl(): GetAuthUrlResponse | Promise<GetAuthUrlResponse>;
   saveStorageTokens(code: string, userId: string): Promise<SaveStorageTokensResponse>;
@@ -56,6 +66,18 @@ export interface IStorageProvider {
   getStorageClient(userId: string): Promise<StorageClient>;
   removeConnection(userId: string): Promise<RemoveConnectionResponse>;
   checkConnection(userId: string): Promise<CheckConnectionResponse>;
+
+  /**
+   * Uploads a file stream to the storage provider.
+   * @param options - Options including the stream, filename, mimetype, and storage entity details.
+   * @returns Provider-specific result (e.g., file ID, URL).
+   */
+  uploadStream(options: {
+    stream: Readable;
+    filename: string;
+    mimetype?: string;
+    storageDetails: Storage;
+  }): Promise<any>;
 }
 
 export interface WithData<T> {

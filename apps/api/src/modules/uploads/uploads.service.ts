@@ -84,7 +84,8 @@ export class UploadsService {
   async findOne(id: string, userId: string) {
     try {
       const upload = await this.uploadsRepository.findOne({
-        where: { id, userId }
+        where: { id, userId },
+        relations: { storage: true }
       });
 
       if (!upload) {
@@ -94,6 +95,30 @@ export class UploadsService {
       return upload;
     } catch (error) {
       throw new InternalServerErrorException('Failed to find upload');
+    }
+  }
+
+  /**
+   * Internal method to find an upload by ID without user check.
+   * Ensures the storage relation is loaded.
+   * Used by background processes like queue consumers.
+   */
+  async _internalFindOneById(id: string): Promise<Upload | null> {
+    try {
+      const upload = await this.uploadsRepository.findOne({
+        where: { id },
+        relations: { storage: true }
+      });
+
+      if (!upload) {
+        console.error(`Internal find: Upload with ID "${id}" not found.`);
+        return null;
+      }
+
+      return upload;
+    } catch (error) {
+      console.error(`Internal find failed for upload ID "${id}":`, error);
+      throw new InternalServerErrorException(`Internal find failed for upload ID "${id}"`);
     }
   }
 
@@ -108,6 +133,9 @@ export class UploadsService {
       Object.assign(upload, updateUploadDto);
       return this.uploadsRepository.save(upload);
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new InternalServerErrorException('Failed to update upload');
     }
   }
@@ -117,6 +145,9 @@ export class UploadsService {
       const upload = await this.findOne(id, userId);
       await this.uploadsRepository.remove(upload);
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new InternalServerErrorException('Failed to remove upload');
     }
   }

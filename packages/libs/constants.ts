@@ -29,6 +29,7 @@ export const STORAGE_PROVIDER_DETAILS = Object.freeze({
 
 export const UPLOAD_STATUS = Object.freeze({
   PENDING: 'pending',
+  PROCESSING: 'processing',
   SUCCESS: 'success',
   FAILED: 'failed'
 });

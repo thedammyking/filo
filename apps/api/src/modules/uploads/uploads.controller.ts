@@ -11,7 +11,8 @@ import {
   HttpCode,
   HttpStatus,
   ClassSerializerInterceptor,
-  UseInterceptors
+  UseInterceptors,
+  Logger
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { CurrentUser } from '@/commons/decorators/current-user.decorator';
@@ -22,13 +23,19 @@ import { UploadsService } from './uploads.service';
 import { UPLOAD_STATUS } from '@filo/libs/constants';
 import type { Upload } from './entities/upload.entity';
 import { PaginatedResponseDto } from '@/utils/pagination.dto';
+import { UploadProducerService } from '@/queue/producers/upload.producer.service';
 
 @ApiTags('uploads')
 @ApiBearerAuth()
 @Controller('uploads')
 @UseInterceptors(ClassSerializerInterceptor)
 export class UploadsController {
-  constructor(private readonly uploadsService: UploadsService) {}
+  private readonly logger = new Logger(UploadsController.name);
+
+  constructor(
+    private readonly uploadsService: UploadsService,
+    private readonly uploadProducerService: UploadProducerService
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create new uploads' })
@@ -41,7 +48,21 @@ export class UploadsController {
     @Body() createUploadDto: CreateUploadDto,
     @CurrentUser() user: User
   ): Promise<UploadResponse[]> {
-    return await this.uploadsService.createUploads(createUploadDto, user.id);
+    const createdUploads = await this.uploadsService.createUploads(createUploadDto, user.id);
+
+    if (createdUploads && createdUploads.length > 0) {
+      const jobData = createdUploads.map(upload => ({
+        uploadId: upload.id
+      }));
+      try {
+        await this.uploadProducerService.addMultipleUploadJobs(jobData);
+        this.logger.log(`Added ${jobData.length} upload jobs to the queue.`);
+      } catch (error) {
+        this.logger.error(`Failed to add upload jobs to the queue: ${error.message}`, error.stack);
+      }
+    }
+
+    return createdUploads;
   }
 
   @Get()
