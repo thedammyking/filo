@@ -11,7 +11,7 @@ import { Repository, LessThan } from 'typeorm';
 import { addDays } from 'date-fns';
 import type { Readable } from 'stream';
 
-import { STORAGE_PROVIDER } from '@filo/libs/constants';
+import { APP_FOLDER_NAME, STORAGE_PROVIDER } from '@filo/libs/constants';
 
 import { Storage } from '../entities/storage.entity';
 import { IStorageProvider, Storage as StorageInterface } from '@filo/interfaces';
@@ -30,7 +30,6 @@ interface GoogleDriveUploadStreamOptions {
   mimetype?: string;
   storageDetails: StorageInterface;
 }
-
 @Injectable()
 export class GoogleDriveProvider implements IStorageProvider {
   private readonly MAX_REFRESH_RETRIES = 3;
@@ -304,6 +303,56 @@ export class GoogleDriveProvider implements IStorageProvider {
     }
   }
 
+  /**
+   * Finds or creates the application-specific folder in Google Drive.
+   * @param drive - Authenticated Google Drive API client.
+   * @returns The ID of the application folder.
+   */
+  private async _findOrCreateAppFolder(drive: drive_v3.Drive): Promise<string> {
+    const folderName = APP_FOLDER_NAME;
+    this.logger.debug(`Searching for app folder: ${folderName}`);
+    try {
+      // Search for the folder in the root, not trashed
+      const listResponse = await drive.files.list({
+        q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
+        fields: 'files(id, name)',
+        spaces: 'drive'
+      });
+
+      if (listResponse.data.files && listResponse.data.files.length > 0) {
+        const folderId = listResponse.data.files[0].id;
+        this.logger.debug(`Found existing app folder with ID: ${folderId}`);
+        return folderId;
+      }
+
+      // Folder not found, create it
+      this.logger.log(`App folder '${folderName}' not found, creating...`);
+      const folderMetadata: drive_v3.Schema$File = {
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder'
+      };
+      const createResponse = await drive.files.create({
+        requestBody: folderMetadata,
+        fields: 'id'
+      });
+      const newFolderId = createResponse.data.id;
+      this.logger.log(`Created app folder '${folderName}' with ID: ${newFolderId}`);
+      return newFolderId;
+    } catch (error) {
+      this.logger.error(
+        `Failed to find or create app folder '${folderName}': ${error.message}`,
+        error.stack
+      );
+      // Rethrow a specific exception or a generic one depending on desired handling
+      throw new InternalServerErrorException(
+        `Could not find or create the '${folderName}' folder in Google Drive.`
+      );
+    }
+  }
+
+  /**
+   * Uploads a file stream to Google Drive.
+   */
   async uploadStream(options: GoogleDriveUploadStreamOptions): Promise<drive_v3.Schema$File> {
     const { stream, filename, mimetype, storageDetails } = options;
     const { userId } = storageDetails;
@@ -311,12 +360,19 @@ export class GoogleDriveProvider implements IStorageProvider {
     this.logger.log(`Starting stream upload for user ${userId}, filename: ${filename}`);
 
     try {
+      // 1. Ensure credentials are valid and set on oauth2Client
       await this.ensureValidCredentials(storageDetails);
 
+      // 2. Get authenticated drive client
       const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
 
+      // 3. Find or create the app folder
+      const appFolderId = await this._findOrCreateAppFolder(drive);
+
+      // 4. Perform the upload into the specific folder
       const fileMetadata: drive_v3.Schema$File = {
-        name: filename
+        name: filename,
+        parents: [appFolderId] // Specify the parent folder ID
       };
 
       const media = {
@@ -331,7 +387,7 @@ export class GoogleDriveProvider implements IStorageProvider {
       });
 
       this.logger.log(
-        `Successfully uploaded file ${response.data.id} (${filename}) for user ${userId}`
+        `Successfully uploaded file ${response.data.id} (${filename}) into folder ${appFolderId} for user ${userId}`
       );
       return response.data;
     } catch (error) {
@@ -346,7 +402,12 @@ export class GoogleDriveProvider implements IStorageProvider {
           googleError.code
         );
       }
-      if (error instanceof UnauthorizedException || error instanceof GoogleDriveException) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof GoogleDriveException ||
+        error instanceof InternalServerErrorException
+      ) {
+        // Re-throw known auth, specific drive errors, or folder creation errors
         throw error;
       }
       throw new InternalServerErrorException('Failed to upload file to Google Drive.');

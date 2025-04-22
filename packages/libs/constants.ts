@@ -38,3 +38,5 @@ export const UPLOAD_TYPE = Object.freeze({
   FILE: 'file',
   MAGNET: 'magnet'
 });
+
+export const APP_FOLDER_NAME = 'Filo';

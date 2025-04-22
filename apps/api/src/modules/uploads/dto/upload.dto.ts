@@ -51,6 +51,12 @@ export class UpdateUploadDto {
     description: 'Upload progress (0-100)'
   })
   progress?: number;
+
+  @ApiProperty({
+    type: String,
+    description: 'File name'
+  })
+  fileName?: string;
 }
 
 export class UploadResponse {

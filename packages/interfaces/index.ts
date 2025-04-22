@@ -111,6 +111,7 @@ export interface CreateUploadDto {
 export interface UpdateUploadDto {
   status?: UploadStatus;
   progress?: number;
+  fileName?: string;
 }
 
 export interface UploadResponse {

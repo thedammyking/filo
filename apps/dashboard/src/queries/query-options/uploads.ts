@@ -31,5 +31,5 @@ export const uploadsQueryOptions = (params?: UploadFilterParams) =>
       const totalPages = Math.ceil(total / limit);
       return page < totalPages ? page + 1 : undefined;
     },
-    refetchInterval: 3000
+    staleTime: 1000 * 60 * 5
   });
