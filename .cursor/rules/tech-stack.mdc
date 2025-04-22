@@ -8,6 +8,5 @@ alwaysApply: true
 - PNPM for package manager
 - NextJS for the frontend framework
 - Radix UI for design system component
-- Storybook for design system documentation
 - TailwindCSS v3 for CSS framework
-- Separate databases for dev, test, and prod
+- NestJS for the backend framework

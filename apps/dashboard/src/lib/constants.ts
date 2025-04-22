@@ -1,4 +1,4 @@
-import { UPLOAD_TYPE } from '@filo/libs/constants';
+import { UPLOAD_STATUS, UPLOAD_TYPE } from '@filo/libs/constants';
 
 export const CLOUD_PROVIDER_COOKIE_NAME = `__storage_provider_` as const;
 
@@ -24,5 +24,33 @@ export const FILE_URL_TYPE_OPTIONS = [
 
 export const DEFAULT_FILE_URL = {
   link: '',
-  linkType: UPLOAD_TYPE.FILE
+  type: UPLOAD_TYPE.FILE
 } as const;
+
+export const FILE_STATUS_BADGE_VARIANT_MAP = {
+  [UPLOAD_STATUS.PENDING]: 'warning',
+  [UPLOAD_STATUS.SUCCESS]: 'success',
+  [UPLOAD_STATUS.FAILED]: 'destructive'
+} as const;
+
+export const DEFAULT_PAGE_SIZE = 10;
+export const DEFAULT_PAGE = 1;
+
+export const UPLOAD_FILTERS = [
+  {
+    label: 'All',
+    value: 'all'
+  },
+  {
+    label: 'Pending',
+    value: UPLOAD_STATUS.PENDING
+  },
+  {
+    label: 'Success',
+    value: UPLOAD_STATUS.SUCCESS
+  },
+  {
+    label: 'Failed',
+    value: UPLOAD_STATUS.FAILED
+  }
+] as const;

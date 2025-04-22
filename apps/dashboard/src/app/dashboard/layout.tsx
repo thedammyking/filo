@@ -12,32 +12,33 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   void (await queryClient.prefetchQuery(activeCloudProviderQueryOptions()));
 
   return (
-    <AppLayout
-      header={
-        <AppHeader>
-          <SignedIn>
-            <HydrationBoundary state={dehydrate(queryClient)}>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <AppLayout
+        header={
+          <AppHeader>
+            <SignedIn>
               <StorageProviderMenu />
-            </HydrationBoundary>
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonTrigger: 'p-2 border rounded-full border-input',
-                  userButtonPopoverFooter: 'hidden',
-                  popoverBox: 'shadow-md rounded-md border bg-popover'
-                }
-              }}
-              userProfileProps={{
-                appearance: {
-                  elements: { rootBox: '', userButtonPopoverFooter: 'hidden' }
-                }
-              }}
-            />
-          </SignedIn>
-        </AppHeader>
-      }
-    >
-      {children}
-    </AppLayout>
+
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonTrigger: 'p-2 border rounded-full border-input',
+                    userButtonPopoverFooter: 'hidden',
+                    popoverBox: 'shadow-md rounded-md border bg-popover'
+                  }
+                }}
+                userProfileProps={{
+                  appearance: {
+                    elements: { rootBox: '', userButtonPopoverFooter: 'hidden' }
+                  }
+                }}
+              />
+            </SignedIn>
+          </AppHeader>
+        }
+      >
+        {children}
+      </AppLayout>
+    </HydrationBoundary>
   );
 }

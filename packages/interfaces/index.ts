@@ -75,3 +75,52 @@ export type StorageProviderDetails = {
   value: StorageProvider;
   status: AvailabilityStatus;
 };
+
+export interface Link {
+  link: string;
+  type: UploadType;
+}
+
+export interface CreateUploadDto {
+  storageId: string;
+  links: Link[];
+}
+
+export interface UpdateUploadDto {
+  status?: UploadStatus;
+  progress?: number;
+}
+
+export interface UploadResponse {
+  id: string;
+  link: string;
+  fileName: string;
+  type: UploadType;
+  status: UploadStatus;
+  progress: number;
+  storage: Storage;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt: Date;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  metadata: {
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+    };
+  };
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface UploadFilterParams extends PaginationParams {
+  status?: UploadStatus;
+  storageId?: string;
+}

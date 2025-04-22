@@ -6,6 +6,7 @@ import { CreateUploadDto, UpdateUploadDto } from './dto/upload.dto';
 import type { UploadStatus } from '@filo/interfaces';
 import { UPLOAD_STATUS } from '@filo/libs/constants';
 import { Storage } from '@/modules/storage/entities/storage.entity';
+import { PaginatedResponse, PaginationDto } from '@/utils/pagination.dto';
 
 @Injectable()
 export class UploadsService {
@@ -42,8 +43,16 @@ export class UploadsService {
     }
   }
 
-  async findAll(userId: string, status?: UploadStatus) {
+  async findAll(
+    userId: string,
+    paginationDto: PaginationDto,
+    status?: UploadStatus,
+    storageId?: string
+  ): Promise<PaginatedResponse<Upload>> {
     try {
+      const { page = 1, limit = 10 } = paginationDto;
+      const skip = (page - 1) * limit;
+
       const query = this.uploadsRepository
         .createQueryBuilder('upload')
         .where('upload.userId = :userId', { userId });
@@ -52,7 +61,22 @@ export class UploadsService {
         query.andWhere('upload.status = :status', { status });
       }
 
-      return query.getMany();
+      if (storageId) {
+        query.andWhere('upload.storageId = :storageId', { storageId });
+      }
+
+      const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
+
+      return {
+        data,
+        metadata: {
+          pagination: {
+            total,
+            page,
+            limit
+          }
+        }
+      };
     } catch (error) {
       throw new InternalServerErrorException('Failed to find uploads');
     }

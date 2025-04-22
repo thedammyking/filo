@@ -20,6 +20,8 @@ import { CreateUploadDto, UpdateUploadDto, UploadResponse } from './dto/upload.d
 import type { UploadStatus } from '@filo/interfaces';
 import { UploadsService } from './uploads.service';
 import { UPLOAD_STATUS } from '@filo/libs/constants';
+import type { PaginatedResponse } from '@/utils/pagination.dto';
+import type { Upload } from './entities/upload.entity';
 
 @ApiTags('uploads')
 @ApiBearerAuth()
@@ -56,9 +58,12 @@ export class UploadsController {
   })
   async findAll(
     @CurrentUser() user: User,
-    @Query('status') status?: UploadStatus
-  ): Promise<UploadResponse[]> {
-    return await this.uploadsService.findAll(user.id, status);
+    @Query('status') status?: UploadStatus,
+    @Query('storageId') storageId?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number
+  ): Promise<PaginatedResponse<Upload>> {
+    return await this.uploadsService.findAll(user.id, { page, limit }, status, storageId);
   }
 
   @Get('pending')
@@ -68,8 +73,18 @@ export class UploadsController {
     description: 'Returns all pending uploads',
     type: [UploadResponse]
   })
-  async findPending(@CurrentUser() user: User): Promise<UploadResponse[]> {
-    return await this.uploadsService.findAll(user.id, UPLOAD_STATUS.PENDING);
+  async findPending(
+    @CurrentUser() user: User,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('storageId') storageId?: string
+  ): Promise<PaginatedResponse<Upload>> {
+    return await this.uploadsService.findAll(
+      user.id,
+      { page, limit },
+      UPLOAD_STATUS.PENDING,
+      storageId
+    );
   }
 
   @Get(':id')

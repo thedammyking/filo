@@ -11,8 +11,10 @@ import {
   SelectValue
 } from '@filo/ui/components/select';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X } from 'lucide-react';
+import { Loader, X } from 'lucide-react';
 
+import { useActiveCloudProvider } from '@/hooks/use-active-cloud-provider';
+import { useCreateUpload } from '@/hooks/use-create-upload';
 import { DEFAULT_FILE_URL, FILE_URL_TYPE_OPTIONS } from '@/lib/constants';
 import type { FileUrlInputSchema } from '@/types/interfaces';
 import { fileUrlInputSchema } from '@/validations/file-url-input';
@@ -20,30 +22,42 @@ import { fileUrlInputSchema } from '@/validations/file-url-input';
 import { Caption } from './caption';
 
 export function FileUrlForm() {
+  const { mutateAsync: createUpload, isPending } = useCreateUpload();
+  const activeProvider = useActiveCloudProvider();
+
   const {
     control,
     register,
     handleSubmit,
+    reset,
     formState: { errors }
   } = useForm<FileUrlInputSchema>({
     resolver: zodResolver(fileUrlInputSchema),
     defaultValues: {
-      urls: [DEFAULT_FILE_URL]
+      links: [DEFAULT_FILE_URL]
     },
     mode: 'all'
   });
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'urls'
+    name: 'links'
   });
 
-  const onSubmit = (data: any) => {
-    console.log(data);
+  const onSubmit = async (data: FileUrlInputSchema) => {
+    if (!activeProvider?.id) return;
+    await createUpload(
+      { links: data.links, storageId: activeProvider.id },
+      {
+        onSuccess: () => {
+          reset();
+        }
+      }
+    );
   };
 
   return (
-    <div className='flex flex-col gap-8 px-6 pb-10 md:px-0'>
+    <div className='flex flex-col gap-8 px-6 md:px-0'>
       <h1 className='text-center text-xl font-medium'>Add files</h1>
       <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-8'>
         <div className='flex flex-col gap-3'>
@@ -54,20 +68,20 @@ export function FileUrlForm() {
                   <label htmlFor={`urls.${index}.link`} className='text-sm font-medium'>
                     URL
                   </label>
-                  <Input {...register(`urls.${index}.link`)} className='font-normal' />
+                  <Input {...register(`links.${index}.link`)} className='font-normal' />
                 </div>
                 <Controller
                   control={control}
-                  name={`urls.${index}.linkType`}
+                  name={`links.${index}.type`}
                   render={({ field }) => (
                     <div className='w-full md:w-[180px]'>
-                      <label htmlFor={`urls.${index}.linkType`} className='text-sm font-medium'>
+                      <label htmlFor={`links.${index}.type`} className='text-sm font-medium'>
                         Type
                       </label>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
-                        name={`urls.${index}.linkType`}
+                        name={`links.${index}.type`}
                       >
                         <SelectTrigger className='font-normal'>
                           <SelectValue placeholder='Select type' />
@@ -95,14 +109,9 @@ export function FileUrlForm() {
                 )}
               </div>
               <div className='flex flex-col gap-1'>
-                {errors.urls?.[index]?.link?.message && (
+                {errors.links?.[index]?.link?.message && (
                   <Caption className='text-destructive'>
-                    {errors.urls?.[index]?.link?.message}
-                  </Caption>
-                )}
-                {errors.urls?.[index]?.linkType?.message && (
-                  <Caption className='text-destructive'>
-                    {errors.urls?.[index]?.linkType?.message}
+                    {errors.links?.[index]?.link?.message}
                   </Caption>
                 )}
               </div>
@@ -113,7 +122,9 @@ export function FileUrlForm() {
           <Button type='button' variant='outline' onClick={() => append(DEFAULT_FILE_URL)}>
             Add more
           </Button>
-          <Button type='submit'>Submit</Button>
+          <Button type='submit' className='min-w-20' disabled={isPending}>
+            {isPending ? <Loader className='size-4 animate-spin' /> : 'Submit'}
+          </Button>
         </div>
       </form>
     </div>

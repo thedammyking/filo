@@ -5,7 +5,7 @@ import type { StorageProvider } from '@filo/interfaces';
 import { Button } from '@filo/ui/components/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@filo/ui/components/popover';
 import { uniqueId } from 'lodash';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader } from 'lucide-react';
 
 import { useActiveCloudProvider } from '@/hooks/use-active-cloud-provider';
 import { useCloudProviders } from '@/hooks/use-cloud-providers';
@@ -19,7 +19,8 @@ const StorageProviderMenu: React.FC = () => {
   const { data: providers } = useCloudProviders();
   const { mutateAsync: setActiveCloudProvider, isPending: isSettingActiveCloudProvider } =
     useSetActiveCloudProvider();
-  const activeCloudProvider = useActiveCloudProvider(providers, provider => {
+
+  const activeCloudProvider = useActiveCloudProvider(provider => {
     setActiveCloudProvider(provider.provider);
   });
 
@@ -72,7 +73,7 @@ const StorageProviderMenu: React.FC = () => {
               className='text-md h-max min-h-10 w-full justify-start gap-4 rounded-none border-b border-border px-[30px] py-4 font-medium text-accent-foreground/75 last:border-b-0 hover:bg-accent/50 hover:text-accent-foreground/75'
             >
               <ProviderDisplay provider={provider.provider} />{' '}
-              <Loader2
+              <Loader
                 className='size-4 animate-spin data-[hidden=true]:hidden'
                 data-hidden={!isSettingActiveCloudProvider}
               />

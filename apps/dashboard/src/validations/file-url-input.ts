@@ -14,10 +14,10 @@ const magnetOrUrlSchema = z.string().refine(
 );
 
 export const fileUrlInputSchema = z.object({
-  urls: z.array(
+  links: z.array(
     z.object({
       link: magnetOrUrlSchema,
-      linkType: z.enum(['file', 'magnet'], {
+      type: z.enum(['file', 'magnet'], {
         message: 'Select the type of the URL'
       })
     })
