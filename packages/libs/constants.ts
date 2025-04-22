@@ -31,7 +31,8 @@ export const UPLOAD_STATUS = Object.freeze({
   PENDING: 'pending',
   PROCESSING: 'processing',
   SUCCESS: 'success',
-  FAILED: 'failed'
+  FAILED: 'failed',
+  CANCELLED: 'cancelled'
 });
 
 export const UPLOAD_TYPE = Object.freeze({

@@ -2,7 +2,8 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  Logger
+  Logger,
+  BadRequestException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +13,9 @@ import type { UploadStatus, PaginatedResponse } from '@filo/interfaces';
 import { UPLOAD_STATUS } from '@filo/libs/constants';
 import { Storage } from '@/modules/storage/entities/storage.entity';
 import { PaginationDto } from '@/utils/pagination.dto';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { UPLOAD_QUEUE } from '@/modules/queue/queue.constants';
 
 @Injectable()
 export class UploadsService {
@@ -21,7 +25,8 @@ export class UploadsService {
     @InjectRepository(Upload)
     private uploadsRepository: Repository<Upload>,
     @InjectRepository(Storage)
-    private storageRepository: Repository<Storage>
+    private storageRepository: Repository<Storage>,
+    @InjectQueue(UPLOAD_QUEUE) private uploadsQueue: Queue
   ) {}
 
   async createUploads({ links, ...createUploadDto }: CreateUploadDto, userId: string) {
@@ -221,6 +226,61 @@ export class UploadsService {
         throw error;
       }
       throw new InternalServerErrorException('Failed to remove upload');
+    }
+  }
+
+  async cancelUpload(id: string, userId: string): Promise<Upload> {
+    this.logger.log(`[${userId}] cancelUpload - Request received for ID: ${id}`);
+    const upload = await this.findOne(id, userId);
+
+    if (!upload) {
+      throw new NotFoundException(`Upload with ID "${id}" not found`);
+    }
+
+    if (upload.status !== UPLOAD_STATUS.PENDING) {
+      this.logger.warn(
+        `[${userId}] cancelUpload - Upload ID ${id} is not in PENDING state (current: ${upload.status}). Cannot cancel.`
+      );
+      throw new BadRequestException(
+        `Upload with ID "${id}" cannot be cancelled as it is not pending.`
+      );
+    }
+
+    try {
+      const job = await this.uploadsQueue.getJob(id);
+      if (job) {
+        this.logger.log(
+          `[${userId}] cancelUpload - Found job ${job.id} for upload ${id}. Attempting removal.`
+        );
+        await job.remove();
+        this.logger.log(
+          `[${userId}] cancelUpload - Successfully removed job ${job.id} from the queue.`
+        );
+      } else {
+        this.logger.log(
+          `[${userId}] cancelUpload - No job found in queue for upload ID ${id}. It might have been processed or removed already.`
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `[${userId}] cancelUpload - Failed to remove job for upload ID ${id} from queue: ${error.message}`,
+        error.stack
+      );
+    }
+
+    try {
+      upload.status = UPLOAD_STATUS.CANCELLED;
+      const updatedUpload = await this.uploadsRepository.save(upload);
+      this.logger.log(
+        `[${userId}] cancelUpload - Successfully marked upload ID ${id} as CANCELLED in the database.`
+      );
+      return updatedUpload;
+    } catch (error) {
+      this.logger.error(
+        `[${userId}] cancelUpload - Failed to update upload status for ID ${id} to CANCELLED: ${error.message}`,
+        error.stack
+      );
+      throw new InternalServerErrorException(`Failed to cancel upload with ID "${id}"`);
     }
   }
 }

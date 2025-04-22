@@ -187,4 +187,26 @@ export class UploadsController {
     await this.uploadsService.remove(id, user.id);
     this.logger.log(`[${user.id}] remove - Deleted upload ID: ${id}`);
   }
+
+  @Patch(':id/cancel')
+  @ApiOperation({ summary: 'Cancel a pending upload' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Upload cancelled successfully',
+    type: UploadResponse
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Upload not found' })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Upload cannot be cancelled (not pending)'
+  })
+  async cancelUpload(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User
+  ): Promise<UploadResponse> {
+    this.logger.log(`[${user.id}] cancelUpload - Request received for ID: ${id}`);
+    const cancelledUpload = await this.uploadsService.cancelUpload(id, user.id);
+    this.logger.log(`[${user.id}] cancelUpload - Cancelled upload ID: ${id}`);
+    return cancelledUpload; // Assuming UploadResponse is compatible with Upload entity
+  }
 }
