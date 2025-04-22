@@ -1,17 +1,27 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString, IsArray, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsEnum, IsString, IsArray, IsNotEmpty, IsUUID, ValidateNested } from 'class-validator';
 import { type UploadStatus, type UploadType } from '@filo/interfaces';
 import { UPLOAD_STATUS, UPLOAD_TYPE } from '@filo/libs/constants';
 import type { Storage } from '@/modules/storage/entities/storage.entity';
+import { Type } from 'class-transformer';
 
-export class CreateUploadDto {
+export class LinkDto {
+  @ApiProperty({
+    description: 'Download or magnet link'
+  })
+  @IsString()
+  @IsNotEmpty()
+  link: string;
+
   @ApiProperty({
     enum: UPLOAD_TYPE,
-    description: 'Type of upload'
+    description: 'Type of the link'
   })
   @IsEnum(UPLOAD_TYPE)
   type: UploadType;
+}
 
+export class CreateUploadDto {
   @ApiProperty({
     description: 'Storage ID to upload to'
   })
@@ -19,13 +29,13 @@ export class CreateUploadDto {
   storageId: string;
 
   @ApiProperty({
-    type: [String],
-    description: 'Array of download or magnet links'
+    type: [LinkDto],
+    description: 'Array of download or magnet links and their type'
   })
   @IsArray()
-  @IsString({ each: true })
-  @IsNotEmpty({ each: true })
-  links: string[];
+  @ValidateNested({ each: true })
+  @Type(() => LinkDto)
+  links: LinkDto[];
 }
 
 export class UpdateUploadDto {
@@ -49,6 +59,9 @@ export class UploadResponse {
 
   @ApiProperty()
   link: string;
+
+  @ApiProperty({ nullable: true })
+  fileName: string;
 
   @ApiProperty({ enum: UPLOAD_TYPE })
   type: UploadType;

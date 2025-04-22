@@ -12,9 +12,15 @@ export class Upload extends BaseEntity {
   link: string;
 
   @Column({
+    name: 'file_name',
+    nullable: true
+  })
+  fileName: string;
+
+  @Column({
     type: 'enum',
     enum: UPLOAD_TYPE,
-    default: UPLOAD_TYPE.REGULAR
+    default: UPLOAD_TYPE.FILE
   })
   type: UploadType;
 

@@ -34,6 +34,6 @@ export const UPLOAD_STATUS = Object.freeze({
 });
 
 export const UPLOAD_TYPE = Object.freeze({
-  REGULAR: 'regular',
+  FILE: 'file',
   MAGNET: 'magnet'
 });

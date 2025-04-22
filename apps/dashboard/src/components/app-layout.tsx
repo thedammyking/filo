@@ -1,13 +1,20 @@
-import AppHeader from '@/components/app-header';
+import { cn } from '@filo/ui/lib/utils';
 
-const AppLayout: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ children, ...props }) => {
+interface AppLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
+  header?: React.ReactNode;
+}
+
+const AppLayout: React.FC<AppLayoutProps> = async ({ children, header, className, ...props }) => {
   return (
     <main
-      className='relative grid min-h-svh w-full grid-rows-[auto_1fr] bg-card text-card-foreground'
+      className={cn(
+        'relative grid h-screen w-full grid-rows-[min-content_1fr] bg-card text-card-foreground',
+        className
+      )}
       {...props}
     >
-      <AppHeader />
-      <div className='min-h-[calc(100svh-64px)]'>{children}</div>
+      {header}
+      <div className='min-h-[calc(100svh-78px)] overflow-y-auto'>{children}</div>
     </main>
   );
 };
