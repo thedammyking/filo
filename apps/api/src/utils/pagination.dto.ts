@@ -15,7 +15,7 @@ export class PaginationDto {
   limit?: number = 10;
 }
 
-export interface PaginatedResponse<T> {
+export class PaginatedResponseDto<T> {
   data: T[];
   metadata: {
     pagination: {

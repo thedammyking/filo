@@ -41,7 +41,6 @@ export const getUploads = authenticatedProcedure
     const { token } = ctx;
     try {
       const response = await uploadsService.getUploads(token, input as any);
-      console.log(response);
       return response.data;
     } catch (error: any) {
       throw new Error(error.message || 'There was an error getting the uploads.');

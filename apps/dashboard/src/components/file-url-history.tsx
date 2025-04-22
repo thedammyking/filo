@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
+import { useInView } from 'react-intersection-observer';
 import type { UploadStatus } from '@filo/interfaces';
 import {
   Select,
@@ -9,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@filo/ui/components/select';
+import { cn } from '@filo/ui/lib/utils';
 import { Loader } from 'lucide-react';
 
 import { useUploadsList } from '@/hooks/ use-uploads-list';
@@ -21,12 +23,31 @@ export function FileUrlHistory() {
   const [filter, setFilter] = React.useState<string>(UPLOAD_FILTERS[0].value);
   const activeCloudProvider = useActiveCloudProvider();
 
-  const { data: uploads, isLoading } = useUploadsList({
+  const {
+    data: uploads,
+    isLoading,
+    fetchNextPage,
+    isFetchingNextPage,
+    hasNextPage
+  } = useUploadsList({
     status: filter === 'all' ? undefined : (filter as UploadStatus),
     storageId: activeCloudProvider?.id
   });
 
-  const data = useMemo(() => uploads?.pages.map(page => page.data).flat(), [uploads]);
+  const handleFetchNextPage = React.useCallback(
+    (inView: boolean) => {
+      if (inView && !isFetchingNextPage && hasNextPage) {
+        fetchNextPage?.();
+      }
+    },
+    [fetchNextPage, isFetchingNextPage, hasNextPage]
+  );
+
+  const { ref: inViewRef } = useInView({
+    onChange: handleFetchNextPage
+  });
+
+  const data = uploads?.pages.map(page => page.data).flat();
 
   const handleFilterChange = React.useCallback((value: string) => setFilter(value), []);
 
@@ -48,8 +69,15 @@ export function FileUrlHistory() {
         </Select>
       </div>
       <FileUrlHistoryList uploads={data ?? []} isLoading={isLoading} />
-      {isLoading && (
-        <div className='flex min-h-[200px] w-full items-center justify-center'>
+      {data && data.length > 0 && hasNextPage && <div ref={inViewRef}>&nbsp;</div>}
+      {/* {!(data && data.length > 0) && !hasNextPage && <div ref={inViewRef}>&nbsp;</div>} */}
+      {(isLoading || isFetchingNextPage) && (
+        <div
+          className={cn(
+            'flex min-h-[200px] w-full items-center justify-center',
+            isFetchingNextPage && 'min-h-max'
+          )}
+        >
           <Loader className='size-6 animate-spin' />
         </div>
       )}

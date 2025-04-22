@@ -17,11 +17,11 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@ne
 import { CurrentUser } from '@/commons/decorators/current-user.decorator';
 import type { User } from '@filo/interfaces';
 import { CreateUploadDto, UpdateUploadDto, UploadResponse } from './dto/upload.dto';
-import type { UploadStatus } from '@filo/interfaces';
+import type { UploadStatus, PaginatedResponse } from '@filo/interfaces';
 import { UploadsService } from './uploads.service';
 import { UPLOAD_STATUS } from '@filo/libs/constants';
-import type { PaginatedResponse } from '@/utils/pagination.dto';
 import type { Upload } from './entities/upload.entity';
+import { PaginatedResponseDto } from '@/utils/pagination.dto';
 
 @ApiTags('uploads')
 @ApiBearerAuth()
@@ -51,10 +51,14 @@ export class UploadsController {
     required: false,
     enum: UPLOAD_STATUS
   })
+  @ApiQuery({
+    name: 'storageId',
+    required: false
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Returns all uploads',
-    type: [UploadResponse]
+    type: PaginatedResponseDto<UploadResponse>
   })
   async findAll(
     @CurrentUser() user: User,
@@ -62,7 +66,7 @@ export class UploadsController {
     @Query('storageId') storageId?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number
-  ): Promise<PaginatedResponse<Upload>> {
+  ): Promise<PaginatedResponse<UploadResponse>> {
     return await this.uploadsService.findAll(user.id, { page, limit }, status, storageId);
   }
 
@@ -71,14 +75,14 @@ export class UploadsController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Returns all pending uploads',
-    type: [UploadResponse]
+    type: PaginatedResponseDto<UploadResponse>
   })
   async findPending(
     @CurrentUser() user: User,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('storageId') storageId?: string
-  ): Promise<PaginatedResponse<Upload>> {
+  ): Promise<PaginatedResponse<UploadResponse>> {
     return await this.uploadsService.findAll(
       user.id,
       { page, limit },

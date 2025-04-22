@@ -18,12 +18,17 @@ export const uploadsQueryOptions = (params?: UploadFilterParams) =>
       if (error) throw error;
       return data;
     },
+    initialPageParam: DEFAULT_PAGE,
     getNextPageParam: response => {
-      const { metadata } = response;
-      const { pagination } = metadata;
-      const { page, limit, total } = pagination;
+      const {
+        metadata: {
+          pagination: { total, ...pagination }
+        }
+      } = response;
+      const page = typeof pagination.page === 'number' ? pagination.page : Number(pagination.page);
+      const limit =
+        typeof pagination.limit === 'number' ? pagination.limit : Number(pagination.limit);
       const totalPages = Math.ceil(total / limit);
       return page < totalPages ? page + 1 : undefined;
-    },
-    initialPageParam: DEFAULT_PAGE
+    }
   });

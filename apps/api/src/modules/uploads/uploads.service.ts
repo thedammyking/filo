@@ -3,10 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Upload } from './entities/upload.entity';
 import { CreateUploadDto, UpdateUploadDto } from './dto/upload.dto';
-import type { UploadStatus } from '@filo/interfaces';
+import type { UploadStatus, PaginatedResponse } from '@filo/interfaces';
 import { UPLOAD_STATUS } from '@filo/libs/constants';
 import { Storage } from '@/modules/storage/entities/storage.entity';
-import { PaginatedResponse, PaginationDto } from '@/utils/pagination.dto';
+import { PaginationDto } from '@/utils/pagination.dto';
 
 @Injectable()
 export class UploadsService {
@@ -30,8 +30,7 @@ export class UploadsService {
       const uploads = links.map(link =>
         this.uploadsRepository.create({
           ...createUploadDto,
-          link: link.link,
-          type: link.type,
+          ...link,
           userId,
           storage
         })
