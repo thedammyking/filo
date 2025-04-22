@@ -30,7 +30,8 @@ export const DEFAULT_FILE_URL = {
 export const FILE_STATUS_BADGE_VARIANT_MAP = {
   [UPLOAD_STATUS.PENDING]: 'warning',
   [UPLOAD_STATUS.SUCCESS]: 'success',
-  [UPLOAD_STATUS.FAILED]: 'destructive'
+  [UPLOAD_STATUS.FAILED]: 'destructive',
+  [UPLOAD_STATUS.PROCESSING]: 'default'
 } as const;
 
 export const DEFAULT_PAGE_SIZE = 10;

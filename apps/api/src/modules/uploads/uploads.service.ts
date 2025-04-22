@@ -95,6 +95,11 @@ export class UploadsService {
         query.andWhere('upload.storageId = :storageId', { storageId });
       }
 
+      // Add sorting logic here
+      query
+        .orderBy('upload.completedAt', 'DESC', 'NULLS LAST') // Primary sort: completedAt DESC (nulls last)
+        .addOrderBy('upload.createdAt', 'DESC'); // Secondary sort: createdAt DESC
+
       const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
 
       this.logger.log(

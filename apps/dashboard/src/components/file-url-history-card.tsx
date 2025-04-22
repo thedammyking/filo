@@ -21,7 +21,8 @@ export function FileUrlHistoryCard({ data }: FileUrlHistoryCardProps) {
           {capitalize(data.status)}
         </Badge>
         <p className='text-sm text-muted-foreground'>
-          Uploaded: {format(data.createdAt, 'MMM d, yyyy h:mm a')}
+          {data.completedAt ? 'Completed' : 'Added'}:{' '}
+          {format(data.completedAt || data.createdAt, 'MMM d, yyyy h:mm a')}
         </p>
       </div>
       <div className='grid grid-cols-1 gap-4 md:grid-cols-[1fr_max-content] md:gap-10'>

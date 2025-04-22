@@ -124,7 +124,7 @@ export interface UploadResponse {
   storage: Storage;
   createdAt: Date;
   updatedAt: Date;
-  completedAt: Date;
+  completedAt: Date | null;
 }
 
 export interface PaginatedResponse<T> {
