@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString, IsArray, IsNotEmpty, IsUUID, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsArray,
+  IsNotEmpty,
+  IsUUID,
+  ValidateNested,
+  IsUrl,
+  IsOptional
+} from 'class-validator';
 import { type UploadStatus, type UploadType } from '@filo/interfaces';
 import { UPLOAD_STATUS, UPLOAD_TYPE } from '@filo/libs/constants';
 import type { Storage } from '@/modules/storage/entities/storage.entity';
@@ -9,8 +18,7 @@ export class LinkDto {
   @ApiProperty({
     description: 'Download or magnet link'
   })
-  @IsString()
-  @IsNotEmpty()
+  @IsUrl({ require_protocol: true, protocols: ['https'] })
   link: string;
 
   @ApiProperty({
@@ -43,6 +51,7 @@ export class UpdateUploadDto {
     enum: UPLOAD_STATUS,
     description: 'Status of the upload'
   })
+  @IsOptional()
   @IsEnum(UPLOAD_STATUS)
   status?: UploadStatus;
 
@@ -50,12 +59,14 @@ export class UpdateUploadDto {
     type: Number,
     description: 'Upload progress (0-100)'
   })
+  @IsOptional()
   progress?: number;
 
   @ApiProperty({
     type: String,
     description: 'File name'
   })
+  @IsOptional()
   fileName?: string;
 }
 

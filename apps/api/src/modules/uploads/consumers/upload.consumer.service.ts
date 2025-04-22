@@ -115,7 +115,8 @@ export class UploadConsumerService extends WorkerHost {
       const response = await axios({
         method: 'get',
         url: upload.link,
-        responseType: 'stream'
+        responseType: 'stream',
+        timeout: 300000
       });
       const fileStream = response.data;
 
