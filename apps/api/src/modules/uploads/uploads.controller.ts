@@ -48,7 +48,13 @@ export class UploadsController {
     @Body() createUploadDto: CreateUploadDto,
     @CurrentUser() user: User
   ): Promise<UploadResponse[]> {
+    this.logger.log(
+      `[${user.id}] createUploads - Request received. StorageId: ${createUploadDto.storageId}, Links: ${createUploadDto.links.length}`
+    );
     const createdUploads = await this.uploadsService.createUploads(createUploadDto, user.id);
+    this.logger.log(
+      `[${user.id}] createUploads - Created ${createdUploads.length} upload records.`
+    );
 
     if (createdUploads && createdUploads.length > 0) {
       const jobData = createdUploads.map(upload => ({
@@ -56,9 +62,15 @@ export class UploadsController {
       }));
       try {
         await this.uploadProducerService.addMultipleUploadJobs(jobData);
-        this.logger.log(`Added ${jobData.length} upload jobs to the queue.`);
+        this.logger.log(
+          `[${user.id}] createUploads - Added ${jobData.length} upload jobs to the queue.`
+        );
       } catch (error) {
-        this.logger.error(`Failed to add upload jobs to the queue: ${error.message}`, error.stack);
+        this.logger.error(
+          `[${user.id}] createUploads - Failed to add upload jobs to the queue: ${error.message}`,
+          error.stack
+        );
+        // Potentially rethrow or handle this error depending on desired behavior
       }
     }
 
@@ -88,7 +100,14 @@ export class UploadsController {
     @Query('page') page?: number,
     @Query('limit') limit?: number
   ): Promise<PaginatedResponse<UploadResponse>> {
-    return await this.uploadsService.findAll(user.id, { page, limit }, status, storageId);
+    this.logger.log(
+      `[${user.id}] findAll - Request received. Status: ${status}, StorageId: ${storageId}, Page: ${page}, Limit: ${limit}`
+    );
+    const result = await this.uploadsService.findAll(user.id, { page, limit }, status, storageId);
+    this.logger.log(
+      `[${user.id}] findAll - Returning ${result.data.length} uploads (Total: ${result.metadata.pagination.total})`
+    );
+    return result;
   }
 
   @Get('pending')
@@ -104,12 +123,19 @@ export class UploadsController {
     @Query('limit') limit?: number,
     @Query('storageId') storageId?: string
   ): Promise<PaginatedResponse<UploadResponse>> {
-    return await this.uploadsService.findAll(
+    this.logger.log(
+      `[${user.id}] findPending - Request received. StorageId: ${storageId}, Page: ${page}, Limit: ${limit}`
+    );
+    const result = await this.uploadsService.findAll(
       user.id,
       { page, limit },
       UPLOAD_STATUS.PENDING,
       storageId
     );
+    this.logger.log(
+      `[${user.id}] findPending - Returning ${result.data.length} pending uploads (Total: ${result.metadata.pagination.total})`
+    );
+    return result;
   }
 
   @Get(':id')
@@ -123,7 +149,10 @@ export class UploadsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: User
   ): Promise<UploadResponse> {
-    return await this.uploadsService.findOne(id, user.id);
+    this.logger.log(`[${user.id}] findOne - Request received for ID: ${id}`);
+    const upload = await this.uploadsService.findOne(id, user.id);
+    this.logger.log(`[${user.id}] findOne - Returning upload ID: ${id}`);
+    return upload;
   }
 
   @Patch(':id')
@@ -138,7 +167,12 @@ export class UploadsController {
     @Body() updateUploadDto: UpdateUploadDto,
     @CurrentUser() user: User
   ): Promise<UploadResponse> {
-    return await this.uploadsService.update(id, updateUploadDto, user.id);
+    this.logger.log(
+      `[${user.id}] update - Request received for ID: ${id}. Status: ${updateUploadDto.status ?? 'N/A'}`
+    );
+    const updatedUpload = await this.uploadsService.update(id, updateUploadDto, user.id);
+    this.logger.log(`[${user.id}] update - Updated upload ID: ${id}`);
+    return updatedUpload;
   }
 
   @Delete(':id')
@@ -149,6 +183,8 @@ export class UploadsController {
     description: 'Upload deleted successfully'
   })
   async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User): Promise<void> {
+    this.logger.log(`[${user.id}] remove - Request received for ID: ${id}`);
     await this.uploadsService.remove(id, user.id);
+    this.logger.log(`[${user.id}] remove - Deleted upload ID: ${id}`);
   }
 }

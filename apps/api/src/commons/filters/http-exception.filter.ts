@@ -1,34 +1,53 @@
-import type { ServerResponse } from '@filo/interfaces';
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
-import { format } from 'date-fns';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 
-@Catch(HttpException)
+// Define a type for the request object augmented by Clerk middleware
+// This helps with type safety when accessing request.auth
+interface RequestWithAuth extends Request {
+  auth?: {
+    userId?: string;
+    // Add other properties from Clerk's auth object if needed
+  };
+}
+
+@Catch() // Catch all exceptions if no specific type is provided
 export class HttpExceptionFilter implements ExceptionFilter {
-  catch(exception: HttpException, host: ArgumentsHost) {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
+  catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    // Cast the request to our custom type
+    const request = ctx.getRequest<RequestWithAuth>();
 
     const status =
       exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    let responseJson: ServerResponse<HttpException> = {
-      status: false,
+    const message =
+      exception instanceof HttpException ? exception.message : 'Internal server error';
+
+    // Use request.auth.userId provided by Clerk middleware
+    const userId = request.auth?.userId || 'anonymous';
+    const errorResponse = {
       statusCode: status,
+      timestamp: new Date().toISOString(),
       path: request.url,
-      message: exception.message,
-      data: exception,
-      timestamp: format(new Date().toISOString(), 'yyyy-MM-dd HH:mm:ss')
+      method: request.method,
+      message: message
     };
 
-    if (request.query.debug === 'true') {
-      responseJson = {
-        ...responseJson,
-        stack: exception.stack
-      };
-    }
+    this.logger.error(
+      `[${userId}] ${request.method} ${request.url} - Error ${status}: ${message}`,
+      exception instanceof Error ? exception.stack : '' // Log stack trace if available
+    );
 
-    response.status(status).json(responseJson);
+    response.status(status).json(errorResponse);
   }
 }

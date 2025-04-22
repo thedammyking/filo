@@ -9,7 +9,8 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
-  ClassSerializerInterceptor
+  ClassSerializerInterceptor,
+  Logger
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -37,6 +38,8 @@ import {
 @Controller('storage')
 @UseInterceptors(ClassSerializerInterceptor)
 export class StorageController {
+  private readonly logger = new Logger(StorageController.name);
+
   constructor(private readonly storageService: StorageService) {}
 
   @Get('list')
@@ -48,7 +51,10 @@ export class StorageController {
     isArray: true
   })
   async getAllStorages(@CurrentUser() user: User) {
-    return await this.storageService.getAllStorages(user.id);
+    this.logger.log(`[${user.id}] getAllStorages - Request received`);
+    const storages = await this.storageService.getAllStorages(user.id);
+    this.logger.log(`[${user.id}] getAllStorages - Returning ${storages.length} storages`);
+    return storages;
   }
 
   @Get(':provider')
@@ -59,7 +65,10 @@ export class StorageController {
     type: StorageResponse
   })
   async getStorage(@Param('provider') provider: StorageProvider, @CurrentUser() user: User) {
-    return await this.storageService.getStorage(user.id, provider);
+    this.logger.log(`[${user.id}] getStorage - Request received for provider: ${provider}`);
+    const storage = await this.storageService.getStorage(user.id, provider);
+    this.logger.log(`[${user.id}] getStorage - Returning storage for provider: ${provider}`);
+    return storage;
   }
 
   @Get(':provider/connect')
@@ -74,9 +83,15 @@ export class StorageController {
     description: 'The OAuth authorization URL',
     type: AuthUrlResponse
   })
-  async getAuthUrl(@Param('provider') provider: StorageProvider): Promise<AuthUrlResponse> {
+  async getAuthUrl(
+    @Param('provider') provider: StorageProvider,
+    @CurrentUser() user: User
+  ): Promise<AuthUrlResponse> {
+    this.logger.log(`[${user.id}] getAuthUrl - Request received for provider: ${provider}`);
     const storageProvider = this.storageService.getProvider(provider);
-    return await storageProvider.getAuthUrl();
+    const authUrl = await storageProvider.getAuthUrl();
+    this.logger.log(`[${user.id}] getAuthUrl - Auth URL generated for provider: ${provider}`);
+    return authUrl;
   }
 
   @Get(':provider/callback')
@@ -100,8 +115,11 @@ export class StorageController {
     @Query('code') code: string,
     @CurrentUser() user: User
   ): Promise<StorageTokenResponse> {
+    this.logger.log(`[${user.id}] handleCallback - Request received for provider: ${provider}`);
     const storageProvider = this.storageService.getProvider(provider);
-    return await storageProvider.saveStorageTokens(code, user.id);
+    const result = await storageProvider.saveStorageTokens(code, user.id);
+    this.logger.log(`[${user.id}] handleCallback - Tokens saved for provider: ${provider}`);
+    return result;
   }
 
   @Get(':provider/connection')
@@ -120,8 +138,13 @@ export class StorageController {
     @Param('provider') provider: StorageProvider,
     @CurrentUser() user: User
   ): Promise<ConnectionStatusResponse> {
+    this.logger.log(`[${user.id}] checkConnection - Request received for provider: ${provider}`);
     const storageProvider = this.storageService.getProvider(provider);
-    return await storageProvider.checkConnection(user.id);
+    const connectionStatus = await storageProvider.checkConnection(user.id);
+    this.logger.log(
+      `[${user.id}] checkConnection - Connection status for provider ${provider}: ${connectionStatus.connected}`
+    );
+    return connectionStatus;
   }
 
   @Delete(':provider/connection')
@@ -140,7 +163,9 @@ export class StorageController {
     @Param('provider') provider: StorageProvider,
     @CurrentUser() user: User
   ): Promise<void> {
+    this.logger.log(`[${user.id}] removeConnection - Request received for provider: ${provider}`);
     const storageProvider = this.storageService.getProvider(provider);
     await storageProvider.removeConnection(user.id);
+    this.logger.log(`[${user.id}] removeConnection - Connection removed for provider: ${provider}`);
   }
 }
