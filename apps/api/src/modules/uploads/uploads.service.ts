@@ -101,9 +101,7 @@ export class UploadsService {
       }
 
       // Add sorting logic here
-      query
-        .orderBy('upload.completedAt', 'DESC', 'NULLS LAST') // Primary sort: completedAt DESC (nulls last)
-        .addOrderBy('upload.createdAt', 'DESC'); // Secondary sort: createdAt DESC
+      query.addOrderBy('upload.createdAt', 'DESC');
 
       const [data, total] = await query.skip(skip).take(limit).getManyAndCount();
 
