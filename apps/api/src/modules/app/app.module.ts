@@ -12,7 +12,7 @@ import { ClerkAuthGuard } from '@/modules/auth/guards/clerk-auth.guard';
 import { StorageModule } from '@/modules/storage/storage.module';
 import { UsersModule } from '@/modules/users/users.module';
 import { UploadsModule } from '@/modules/uploads/uploads.module';
-import { QueueModule } from '@/queue/queue.module';
+import { QueueModule } from '@/modules/queue/queue.module';
 
 import { AppController } from './app.controller';
 import { CatchEverythingFilter } from '@/commons/filters/catch-everything.filter';

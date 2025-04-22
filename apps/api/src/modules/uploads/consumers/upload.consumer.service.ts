@@ -1,8 +1,8 @@
 import { Processor, WorkerHost, OnWorkerEvent, InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { UPLOAD_JOB, UPLOAD_QUEUE } from '@/queue/queue.constants';
-import type { UploadJobData } from '@/queue/producers/upload.producer.service';
+import { UPLOAD_JOB, UPLOAD_QUEUE } from '@/modules/queue/queue.constants';
+import type { UploadJobData } from '@/modules/queue/producers/upload.producer.service';
 import { UploadsService } from '../uploads.service';
 import { StorageService } from '@/modules/storage/storage.service';
 import axios from 'axios';

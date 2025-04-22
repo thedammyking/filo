@@ -7,8 +7,8 @@ import { UploadsController } from './uploads.controller';
 import { UploadsService } from './uploads.service';
 import { Storage } from '@/modules/storage/entities/storage.entity';
 import { StorageModule } from '@/modules/storage/storage.module';
-import { QueueModule } from '@/queue/queue.module';
-import { UPLOAD_QUEUE } from '@/queue/queue.constants';
+import { QueueModule } from '@/modules/queue/queue.module';
+import { UPLOAD_QUEUE } from '@/modules/queue/queue.constants';
 import { UploadConsumerService } from './consumers/upload.consumer.service';
 
 @Module({

@@ -38,10 +38,10 @@ For this project, follow these specific rules:
   - **Uploads Module**:
     - Manage uploads and their statuses.
     - Support streaming directly to cloud storage providers using readable streams.
-  - **Task Module**:
-    - Manage tasks for file uploads, including status tracking.
-    - Support streaming directly to cloud storage providers using readable streams.
-  - **Cloud Provider Module**:
+  - **Queue Module**:
+    - Manage job queues
+    - Uses BullMQ
+  - **Storage Module**:
     - Abstract integrations with Google Drive, Dropbox, and other providers.
     - Use a factory pattern to add new providers easily.
 
@@ -55,7 +55,7 @@ For this project, follow these specific rules:
 
 ### Database Design (TypeOrm)
 - Use PostgreSQL with TypeORM for schema management:
-  - Create entities for `uploads`, `tasks`, and `cloud_providers`.
+  - Create entities for `uploads`, and `storage`.
   - Use Redis for caching frequently accessed data, such as task progress.
 
 ### Streaming Uploads
@@ -76,8 +76,6 @@ For this project, follow these specific rules:
 - Prioritize security:
   - Use environment variables for sensitive configurations.
   - Validate all user inputs to prevent injection attacks.
-- Optimize for performance:
+  - Optimize for performance:
   - Use caching for repeated tasks or data retrieval.
   - Minimize server-side storage by streaming files directly to cloud providers.
-
-By following these rules, ensure that the AI-generated code aligns with this project's architecture and API design.

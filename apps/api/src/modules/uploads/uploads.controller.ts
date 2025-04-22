@@ -23,7 +23,7 @@ import { UploadsService } from './uploads.service';
 import { UPLOAD_STATUS } from '@filo/libs/constants';
 import type { Upload } from './entities/upload.entity';
 import { PaginatedResponseDto } from '@/utils/pagination.dto';
-import { UploadProducerService } from '@/queue/producers/upload.producer.service';
+import { UploadProducerService } from '@/modules/queue/producers/upload.producer.service';
 
 @ApiTags('uploads')
 @ApiBearerAuth()
