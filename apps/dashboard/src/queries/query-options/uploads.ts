@@ -30,5 +30,6 @@ export const uploadsQueryOptions = (params?: UploadFilterParams) =>
         typeof pagination.limit === 'number' ? pagination.limit : Number(pagination.limit);
       const totalPages = Math.ceil(total / limit);
       return page < totalPages ? page + 1 : undefined;
-    }
+    },
+    refetchInterval: 3000
   });
