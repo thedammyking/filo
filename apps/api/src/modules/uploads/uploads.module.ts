@@ -10,6 +10,8 @@ import { StorageModule } from '@/modules/storage/storage.module';
 import { QueueModule } from '@/modules/queue/queue.module';
 import { UPLOAD_QUEUE } from '@/modules/queue/queue.constants';
 import { UploadConsumerService } from './consumers/upload.consumer.service';
+import { FileModule } from '@/modules/file/file.module';
+import { SecurityModule } from '@/modules/security/security.module';
 
 @Module({
   imports: [
@@ -18,7 +20,9 @@ import { UploadConsumerService } from './consumers/upload.consumer.service';
     QueueModule,
     BullModule.registerQueue({
       name: UPLOAD_QUEUE
-    })
+    }),
+    FileModule,
+    SecurityModule
   ],
   controllers: [UploadsController],
   providers: [UploadsService, UploadConsumerService],

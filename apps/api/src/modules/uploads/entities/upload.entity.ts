@@ -18,6 +18,13 @@ export class Upload extends BaseEntity {
   fileName: string;
 
   @Column({
+    name: 'file_size',
+    type: 'bigint',
+    nullable: true
+  })
+  fileSize: number;
+
+  @Column({
     type: 'enum',
     enum: UPLOAD_TYPE,
     default: UPLOAD_TYPE.FILE
@@ -39,6 +46,9 @@ export class Upload extends BaseEntity {
 
   @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
   completedAt: Date;
+
+  @Column({ type: 'text', nullable: true })
+  error: string;
 
   @Transform(({ value }) => ({
     id: value.id,

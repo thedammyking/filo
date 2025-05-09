@@ -7,7 +7,9 @@ import {
   IsUUID,
   ValidateNested,
   IsUrl,
-  IsOptional
+  IsOptional,
+  IsNumber,
+  Min
 } from 'class-validator';
 import { type UploadStatus, type UploadType } from '@filo/interfaces';
 import { UPLOAD_STATUS, UPLOAD_TYPE } from '@filo/libs/constants';
@@ -68,6 +70,25 @@ export class UpdateUploadDto {
   })
   @IsOptional()
   fileName?: string;
+
+  @ApiProperty({
+    description: 'Error message if the upload failed',
+    type: String,
+    nullable: true
+  })
+  @IsOptional()
+  @IsString()
+  error?: string;
+
+  @ApiProperty({
+    description: 'Size of the uploaded file in bytes',
+    type: Number,
+    nullable: true
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  fileSize?: number;
 }
 
 export class UploadResponse {
