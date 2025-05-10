@@ -120,7 +120,7 @@ export class TorrentService implements OnModuleInit {
           });
           uploadedFiles.push(file.name);
           await this.uploadsService.update(uploadId, {
-            progress: ((i + 1) / torrentInfo.files.length) * 100
+            progress: parseInt((((i + 1) / torrentInfo.files.length) * 100).toFixed(0))
           });
           this.logger.log(`${fileLogPrefix} Upload successful.`);
         } catch (error) {

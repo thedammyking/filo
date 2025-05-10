@@ -4,7 +4,7 @@ import { join } from 'path';
 import { EventEmitter } from 'events';
 import { Readable, PassThrough } from 'stream';
 
-const CHUNK_SIZE = 64 * 1024; // 64KB chunks
+const CHUNK_SIZE = 512 * 1024; // 512KB chunks
 
 @Injectable()
 export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {

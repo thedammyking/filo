@@ -165,7 +165,11 @@ export class UploadConsumerService extends WorkerHost {
             userId: userId,
             stream: fileDetails.stream,
             filename: finalFilename,
-            mimetype: fileDetails.contentType
+            mimetype: fileDetails.contentType,
+            fileSize: fileDetails.contentLength,
+            onProgress: async progress => {
+              await this.uploadsService.update(uploadId, { progress });
+            }
           });
 
           this.logger.log(`${userLogPrefix} Successfully uploaded ${finalFilename}`);
@@ -173,6 +177,7 @@ export class UploadConsumerService extends WorkerHost {
           await this.uploadsService.update(uploadId, {
             status: UPLOAD_STATUS.SUCCESS,
             fileSize: fileDetails.contentLength,
+            progress: 100,
             error: null
           });
 
