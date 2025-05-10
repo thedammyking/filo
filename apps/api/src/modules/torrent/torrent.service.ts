@@ -39,13 +39,13 @@ export class TorrentService implements OnModuleInit {
   }
 
   async handleMagnetUpload(originalUpload: Upload): Promise<void> {
-    const { id: originalUploadId, link: magnetURI, userId, storage } = originalUpload;
-    const logPrefix = `[Upload ${originalUploadId}][User ${userId}]`;
+    const { id: uploadId, link: magnetURI, userId, storage } = originalUpload;
+    const logPrefix = `[Upload ${uploadId}][User ${userId}]`;
     this.logger.log(`${logPrefix} Processing magnet: ${magnetURI}`);
 
     if (!storage || !storage.id) {
       this.logger.error(`${logPrefix} Storage info missing.`);
-      await this.uploadsService.update(originalUploadId, {
+      await this.uploadsService.update(uploadId, {
         status: UPLOAD_STATUS.FAILED,
         error: 'Storage information missing.'
       });
@@ -55,7 +55,7 @@ export class TorrentService implements OnModuleInit {
     try {
       // Update original upload to PROCESSING if not already
       if (originalUpload.status !== UPLOAD_STATUS.PROCESSING) {
-        await this.uploadsService.update(originalUploadId, { status: UPLOAD_STATUS.PROCESSING });
+        await this.uploadsService.update(uploadId, { status: UPLOAD_STATUS.PROCESSING });
       }
 
       // Add torrent to worker without download path
@@ -66,7 +66,7 @@ export class TorrentService implements OnModuleInit {
 
       if (torrentInfo.files.length === 0) {
         this.logger.warn(`${logPrefix} Torrent contains no files.`);
-        await this.uploadsService.update(originalUploadId, {
+        await this.uploadsService.update(uploadId, {
           status: UPLOAD_STATUS.FAILED,
           error: 'Torrent contains no files.'
         });
@@ -79,20 +79,24 @@ export class TorrentService implements OnModuleInit {
         torrentNameForSubdirectory =
           largestFile.name.split('/').pop().split('.').slice(0, -1).join('.') ||
           largestFile.name.split('/').pop() ||
-          `torrent_${originalUploadId}`;
+          `torrent_${uploadId}`;
       } else if (!torrentNameForSubdirectory) {
-        torrentNameForSubdirectory = `torrent_${originalUploadId}`;
+        torrentNameForSubdirectory = `torrent_${uploadId}`;
       }
       torrentNameForSubdirectory = this.sanitizePath(torrentNameForSubdirectory);
       this.logger.log(`${logPrefix} Subdirectory name: ${torrentNameForSubdirectory}`);
 
+      const subDirectoryName = torrentInfo.name || torrentNameForSubdirectory;
+
       // Mark original magnet upload as successfully parsed and initiating children
-      await this.uploadsService.update(originalUploadId, {
-        status: UPLOAD_STATUS.SUCCESS,
-        fileName: torrentInfo.name || torrentNameForSubdirectory,
+      await this.uploadsService.update(uploadId, {
+        fileName: subDirectoryName,
         fileSize: torrentInfo.files.reduce((sum, file) => sum + file.length, 0),
         error: null
       });
+
+      //track uploaded ids
+      let uploadedFiles: string[] = [];
 
       // Process each file as a separate upload
       for (let i = 0; i < torrentInfo.files.length; i++) {
@@ -100,67 +104,42 @@ export class TorrentService implements OnModuleInit {
         const fileLogPrefix = `${logPrefix}[File:${file.name}]`;
         this.logger.log(`${fileLogPrefix} Creating upload entry. Size: ${file.length}`);
 
-        let individualFileuploadRecord: Upload | null = null;
         try {
-          const createLinkDto = {
-            link: magnetURI,
-            type: UPLOAD_TYPE.MAGNET,
-            fileName: file.name
-          };
-          const createUploadDto: CreateUploadDto = {
-            storageId: storage.id,
-            links: [createLinkDto]
-          };
-
-          const savedUploads = await this.uploadsService.createUploads(createUploadDto, userId);
-          if (!savedUploads || savedUploads.length === 0) {
-            throw new Error('Failed to create database entry for torrent file.');
-          }
-          individualFileuploadRecord = savedUploads[0];
-          this.logger.log(
-            `${fileLogPrefix} DB record created: ${individualFileuploadRecord.id}, status: ${individualFileuploadRecord.status}`
-          );
-
-          await this.uploadsService.update(individualFileuploadRecord.id, {
-            status: UPLOAD_STATUS.PROCESSING
-          });
-
           // Get file stream from worker
           const fileStream = await this.torrentWorker.getFileStream(torrentInfo.infoHash, i);
 
-          this.logger.log(
-            `${fileLogPrefix} Uploading to storage. Subdir: ${torrentNameForSubdirectory}`
-          );
+          this.logger.log(`${fileLogPrefix} Uploading to storage. Subdir: ${subDirectoryName}`);
           await this.storageService.uploadStream({
             storageId: storage.id,
             userId: userId,
             stream: fileStream,
             filename: file.name,
             mimetype: this.getMimeType(file.name),
-            subdirectory: torrentNameForSubdirectory,
+            subdirectory: subDirectoryName,
             fileSize: file.length
           });
-
-          this.logger.log(`${fileLogPrefix} Upload successful.`);
-          await this.uploadsService.update(individualFileuploadRecord.id, {
-            status: UPLOAD_STATUS.SUCCESS,
-            completedAt: new Date(),
-            fileSize: file.length,
-            error: null
+          uploadedFiles.push(file.name);
+          await this.uploadsService.update(uploadId, {
+            progress: ((i + 1) / torrentInfo.files.length) * 100
           });
+          this.logger.log(`${fileLogPrefix} Upload successful.`);
         } catch (error) {
           this.logger.error(
             `${fileLogPrefix} Failed: ${error instanceof Error ? error.message : String(error)}`,
             error instanceof Error ? error.stack : undefined
           );
-          if (individualFileuploadRecord && individualFileuploadRecord.id) {
-            await this.uploadsService.update(individualFileuploadRecord.id, {
-              status: UPLOAD_STATUS.FAILED,
-              error: error instanceof Error ? error.message : String(error)
-            });
-          }
         }
       }
+
+      if (uploadedFiles.length < torrentInfo.files.length) {
+        throw new Error(
+          `Failed to upload all files for ${torrentInfo.name}: ${uploadedFiles.length} of ${torrentInfo.files.length} files uploaded`
+        );
+      }
+
+      await this.uploadsService.update(uploadId, {
+        status: UPLOAD_STATUS.SUCCESS
+      });
 
       // Clean up the torrent
       await this.torrentWorker.removeTorrent(torrentInfo.infoHash);
@@ -170,7 +149,7 @@ export class TorrentService implements OnModuleInit {
         `${logPrefix} Overall failure: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined
       );
-      await this.uploadsService.update(originalUploadId, {
+      await this.uploadsService.update(uploadId, {
         status: UPLOAD_STATUS.FAILED,
         error: error instanceof Error ? error.message : String(error)
       });
