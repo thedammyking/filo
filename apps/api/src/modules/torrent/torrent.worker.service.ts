@@ -65,10 +65,7 @@ export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async addTorrent(
-    magnetURI: string,
-    downloadPath?: string
-  ): Promise<{
+  async addTorrent(magnetURI: string): Promise<{
     name: string;
     infoHash: string;
     files: Array<{ name: string; length: number }>;
@@ -104,7 +101,7 @@ export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`Sending ADD_TORRENT message for: ${magnetURI}`);
       this.worker!.postMessage({
         type: 'ADD_TORRENT',
-        data: { magnetURI, downloadPath }
+        data: { magnetURI }
       });
     });
   }

@@ -58,15 +58,8 @@ export class TorrentService implements OnModuleInit {
         await this.uploadsService.update(originalUploadId, { status: UPLOAD_STATUS.PROCESSING });
       }
 
-      const torrentDownloadPath = this.configService.get<string>(
-        'TORRENT_DOWNLOAD_PATH',
-        './temp_torrents'
-      );
-
-      this.logger.log(`${logPrefix} Using torrent download path: ${torrentDownloadPath}`);
-
-      // Add torrent to worker
-      const torrentInfo = await this.torrentWorker.addTorrent(magnetURI, torrentDownloadPath);
+      // Add torrent to worker without download path
+      const torrentInfo = await this.torrentWorker.addTorrent(magnetURI);
       this.logger.log(
         `${logPrefix} Torrent added: ${torrentInfo.name}, Files: ${torrentInfo.files.length}`
       );

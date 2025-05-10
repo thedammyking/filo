@@ -26,9 +26,8 @@ parentPort.on('message', async message => {
   try {
     switch (type) {
       case 'ADD_TORRENT': {
-        const { magnetURI, downloadPath } = data;
+        const { magnetURI } = data;
         console.log(`Adding torrent: ${magnetURI}`);
-        console.log(`Download path: ${downloadPath}`);
 
         // Check if torrent already exists
         const existingTorrent = client.get(magnetURI);
@@ -48,9 +47,9 @@ parentPort.on('message', async message => {
           return;
         }
 
-        // Add new torrent
+        // Add new torrent without download path
         console.log('Adding new torrent...');
-        client.add(magnetURI, { path: downloadPath }, torrent => {
+        client.add(magnetURI, torrent => {
           console.log('Torrent added, setting up event listeners');
 
           // Send ready event immediately after adding
