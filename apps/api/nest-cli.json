@@ -8,7 +8,7 @@
   "assets": [
     {
       "include": "src/**/*.worker.mjs",
-      "outDir": "dist/worker"
+      "outDir": "dist"
     }
   ]
 }

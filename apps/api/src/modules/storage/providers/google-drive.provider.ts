@@ -29,6 +29,7 @@ interface GoogleDriveUploadStreamOptions {
   filename: string;
   mimetype?: string;
   storageDetails: StorageInterface;
+  subdirectory?: string;
 }
 @Injectable()
 export class GoogleDriveProvider implements IStorageProvider {
@@ -354,7 +355,7 @@ export class GoogleDriveProvider implements IStorageProvider {
    * Uploads a file stream to Google Drive.
    */
   async uploadStream(options: GoogleDriveUploadStreamOptions): Promise<drive_v3.Schema$File> {
-    const { stream, filename, mimetype, storageDetails } = options;
+    const { stream, filename, mimetype, storageDetails, subdirectory } = options;
     const { userId } = storageDetails;
 
     this.logger.log(`Starting stream upload for user ${userId}, filename: ${filename}`);
@@ -369,10 +370,16 @@ export class GoogleDriveProvider implements IStorageProvider {
       // 3. Find or create the app folder
       const appFolderId = await this._findOrCreateAppFolder(drive);
 
-      // 4. Perform the upload into the specific folder
+      // 4. If subdirectory is provided, find or create it
+      let parentFolderId = appFolderId;
+      if (subdirectory) {
+        parentFolderId = await this._findOrCreateSubfolder(drive, appFolderId, subdirectory);
+      }
+
+      // 5. Perform the upload into the specific folder
       const fileMetadata: drive_v3.Schema$File = {
         name: filename,
-        parents: [appFolderId] // Specify the parent folder ID
+        parents: [parentFolderId] // Use the subfolder ID if it exists
       };
 
       const media = {
@@ -387,7 +394,7 @@ export class GoogleDriveProvider implements IStorageProvider {
       });
 
       this.logger.log(
-        `Successfully uploaded file ${response.data.id} (${filename}) into folder ${appFolderId} for user ${userId}`
+        `Successfully uploaded file ${response.data.id} (${filename}) into folder ${parentFolderId} for user ${userId}`
       );
       return response.data;
     } catch (error) {
@@ -407,10 +414,61 @@ export class GoogleDriveProvider implements IStorageProvider {
         error instanceof GoogleDriveException ||
         error instanceof InternalServerErrorException
       ) {
-        // Re-throw known auth, specific drive errors, or folder creation errors
         throw error;
       }
       throw new InternalServerErrorException('Failed to upload file to Google Drive.');
+    }
+  }
+
+  /**
+   * Finds or creates a subfolder within a parent folder in Google Drive.
+   * @param drive - Authenticated Google Drive API client.
+   * @param parentFolderId - ID of the parent folder.
+   * @param subfolderName - Name of the subfolder to find or create.
+   * @returns The ID of the subfolder.
+   */
+  private async _findOrCreateSubfolder(
+    drive: drive_v3.Drive,
+    parentFolderId: string,
+    subfolderName: string
+  ): Promise<string> {
+    this.logger.debug(`Searching for subfolder: ${subfolderName} in parent: ${parentFolderId}`);
+    try {
+      // Search for the subfolder in the parent folder
+      const listResponse = await drive.files.list({
+        q: `name='${subfolderName}' and mimeType='application/vnd.google-apps.folder' and '${parentFolderId}' in parents and trashed=false`,
+        fields: 'files(id, name)',
+        spaces: 'drive'
+      });
+
+      if (listResponse.data.files && listResponse.data.files.length > 0) {
+        const folderId = listResponse.data.files[0].id;
+        this.logger.debug(`Found existing subfolder with ID: ${folderId}`);
+        return folderId;
+      }
+
+      // Subfolder not found, create it
+      this.logger.log(`Subfolder '${subfolderName}' not found, creating...`);
+      const folderMetadata: drive_v3.Schema$File = {
+        name: subfolderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentFolderId]
+      };
+      const createResponse = await drive.files.create({
+        requestBody: folderMetadata,
+        fields: 'id'
+      });
+      const newFolderId = createResponse.data.id;
+      this.logger.log(`Created subfolder '${subfolderName}' with ID: ${newFolderId}`);
+      return newFolderId;
+    } catch (error) {
+      this.logger.error(
+        `Failed to find or create subfolder '${subfolderName}': ${error.message}`,
+        error.stack
+      );
+      throw new InternalServerErrorException(
+        `Could not find or create the '${subfolderName}' subfolder in Google Drive.`
+      );
     }
   }
 }

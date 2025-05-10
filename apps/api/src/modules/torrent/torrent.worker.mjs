@@ -1,6 +1,8 @@
 import { parentPort } from 'worker_threads';
 import WebTorrent from 'webtorrent';
 
+console.log('Worker thread starting...');
+
 // Initialize WebTorrent client
 const client = new WebTorrent({
   tracker: {
@@ -8,20 +10,32 @@ const client = new WebTorrent({
   }
 });
 
+console.log('WebTorrent client initialized');
+
+// Track active streams and their states
+const activeStreams = new Map();
+
+// Send ready signal to main thread
+parentPort.postMessage({ type: 'WORKER_READY' });
+
 // Handle messages from the main thread
 parentPort.on('message', async message => {
   const { type, data } = message;
+  console.log(`Received message type: ${type}`);
 
   try {
     switch (type) {
       case 'ADD_TORRENT': {
         const { magnetURI, downloadPath } = data;
+        console.log(`Adding torrent: ${magnetURI}`);
+        console.log(`Download path: ${downloadPath}`);
 
         // Check if torrent already exists
         const existingTorrent = client.get(magnetURI);
         if (existingTorrent) {
+          console.log('Torrent already exists, returning existing info');
           parentPort.postMessage({
-            type: 'TORRENT_ADDED',
+            type: 'TORRENT_READY',
             data: {
               name: existingTorrent.name,
               infoHash: existingTorrent.infoHash,
@@ -35,22 +49,25 @@ parentPort.on('message', async message => {
         }
 
         // Add new torrent
+        console.log('Adding new torrent...');
         client.add(magnetURI, { path: downloadPath }, torrent => {
-          torrent.on('ready', () => {
-            parentPort.postMessage({
-              type: 'TORRENT_READY',
-              data: {
-                name: torrent.name,
-                infoHash: torrent.infoHash,
-                files: torrent.files.map(f => ({
-                  name: f.name,
-                  length: f.length
-                }))
-              }
-            });
+          console.log('Torrent added, setting up event listeners');
+
+          // Send ready event immediately after adding
+          parentPort.postMessage({
+            type: 'TORRENT_READY',
+            data: {
+              name: torrent.name,
+              infoHash: torrent.infoHash,
+              files: torrent.files.map(f => ({
+                name: f.name,
+                length: f.length
+              }))
+            }
           });
 
           torrent.on('error', err => {
+            console.error('Torrent error:', err);
             parentPort.postMessage({
               type: 'TORRENT_ERROR',
               data: {
@@ -60,6 +77,7 @@ parentPort.on('message', async message => {
           });
 
           torrent.on('done', () => {
+            console.log('Torrent download completed');
             parentPort.postMessage({
               type: 'TORRENT_DONE',
               data: {
@@ -86,23 +104,52 @@ parentPort.on('message', async message => {
 
         // Create a readable stream for the file
         const stream = file.createReadStream();
+        const streamKey = `${infoHash}:${fileIndex}`;
+        let isStreaming = true;
+
+        // Store stream state
+        activeStreams.set(streamKey, { stream, isStreaming });
 
         // Send stream chunks to main thread
         stream.on('data', chunk => {
-          parentPort.postMessage(
-            {
+          if (!isStreaming) return;
+
+          try {
+            // Create a copy of the chunk to avoid detached buffer issues
+            const chunkCopy = Buffer.from(chunk);
+            const canContinue = parentPort.postMessage({
               type: 'FILE_CHUNK',
               data: {
                 infoHash,
                 fileIndex,
-                chunk: chunk.buffer
+                chunk: chunkCopy
               }
-            },
-            [chunk.buffer]
-          ); // Transfer the buffer to avoid copying
+            });
+
+            if (!canContinue) {
+              console.log(`Pausing stream: ${streamKey}`);
+              stream.pause();
+            }
+          } catch (error) {
+            console.error(`Error sending chunk for ${streamKey}:`, error);
+            isStreaming = false;
+            stream.destroy(error);
+            activeStreams.delete(streamKey);
+            parentPort.postMessage({
+              type: 'FILE_ERROR',
+              data: {
+                infoHash,
+                fileIndex,
+                error: error.message
+              }
+            });
+          }
         });
 
         stream.on('end', () => {
+          if (!isStreaming) return;
+          isStreaming = false;
+          activeStreams.delete(streamKey);
           parentPort.postMessage({
             type: 'FILE_END',
             data: {
@@ -113,6 +160,9 @@ parentPort.on('message', async message => {
         });
 
         stream.on('error', err => {
+          if (!isStreaming) return;
+          isStreaming = false;
+          activeStreams.delete(streamKey);
           parentPort.postMessage({
             type: 'FILE_ERROR',
             data: {
@@ -122,6 +172,32 @@ parentPort.on('message', async message => {
             }
           });
         });
+        break;
+      }
+
+      case 'PAUSE_STREAM': {
+        const { infoHash, fileIndex } = data;
+        const streamKey = `${infoHash}:${fileIndex}`;
+        const streamState = activeStreams.get(streamKey);
+
+        if (streamState) {
+          console.log(`Pausing stream: ${streamKey}`);
+          streamState.isStreaming = false;
+          streamState.stream.pause();
+        }
+        break;
+      }
+
+      case 'RESUME_STREAM': {
+        const { infoHash, fileIndex } = data;
+        const streamKey = `${infoHash}:${fileIndex}`;
+        const streamState = activeStreams.get(streamKey);
+
+        if (streamState) {
+          console.log(`Resuming stream: ${streamKey}`);
+          streamState.isStreaming = true;
+          streamState.stream.resume();
+        }
         break;
       }
 
@@ -150,6 +226,7 @@ parentPort.on('message', async message => {
         throw new Error(`Unknown message type: ${type}`);
     }
   } catch (error) {
+    console.error('Worker error:', error);
     parentPort.postMessage({
       type: 'ERROR',
       data: {
@@ -161,6 +238,13 @@ parentPort.on('message', async message => {
 
 // Handle worker termination
 process.on('SIGTERM', () => {
+  // Clean up all active streams
+  for (const [streamKey, { stream }] of activeStreams.entries()) {
+    console.log(`Cleaning up stream: ${streamKey}`);
+    stream.destroy();
+  }
+  activeStreams.clear();
+
   client.destroy(() => {
     process.exit(0);
   });
