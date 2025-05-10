@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter } from 'events';
 import { Readable, PassThrough } from 'stream';
-import { MemoryMonitorConfig } from './memory-monitor.config';
 
 export interface MemoryThresholds {
   WARNING: number;
@@ -35,72 +34,64 @@ export class MemoryMonitorService {
   private currentChunkSize: number;
 
   constructor(private readonly configService: ConfigService) {
-    const config = this.configService.get<MemoryMonitorConfig>('memoryMonitor');
-    if (!config) {
-      throw new Error('Memory monitor configuration not found');
-    }
-    this.currentChunkSize = config.chunkSize.DEFAULT;
+    this.currentChunkSize =
+      this.configService.get<number>('memoryMonitor.chunkSize.DEFAULT') ?? 1024 * 1024;
   }
 
   startMonitoring(onChunkSizeChange: (newSize: number) => void): void {
-    const config = this.configService.get<MemoryMonitorConfig>('memoryMonitor');
-    if (!config) {
-      throw new Error('Memory monitor configuration not found');
-    }
-
     if (this.memoryCheckInterval) {
       clearInterval(this.memoryCheckInterval);
     }
+
+    const checkInterval =
+      this.configService.get<number>('memoryMonitor.monitoring.CHECK_INTERVAL_MS') ?? 5000;
+    const warningThreshold =
+      this.configService.get<number>('memoryMonitor.thresholds.WARNING') ?? 512;
+    const criticalThreshold =
+      this.configService.get<number>('memoryMonitor.thresholds.CRITICAL') ?? 768;
+    const maxThreshold = this.configService.get<number>('memoryMonitor.thresholds.MAX') ?? 1024;
+    const stableThreshold =
+      this.configService.get<number>('memoryMonitor.monitoring.STABLE_MEMORY_THRESHOLD') ?? 3;
+    const stableDelta =
+      this.configService.get<number>('memoryMonitor.monitoring.STABLE_MEMORY_DELTA') ?? 10;
+    const reductionFactor =
+      this.configService.get<number>('memoryMonitor.chunkSize.REDUCTION_FACTOR') ?? 0.5;
+    const increaseFactor =
+      this.configService.get<number>('memoryMonitor.chunkSize.INCREASE_FACTOR') ?? 1.1;
 
     this.memoryCheckInterval = setInterval(() => {
       const metrics = this.getMemoryMetrics();
       const heapUsedMB = Math.round(metrics.heapUsed / 1024 / 1024);
 
       // Check memory thresholds and adjust chunk size
-      if (heapUsedMB >= config.thresholds.MAX) {
+      if (heapUsedMB >= maxThreshold) {
         this.logger.error(
           `CRITICAL: Memory usage exceeded maximum threshold! ` +
-            `Heap Used: ${heapUsedMB}MB (Max: ${config.thresholds.MAX}MB)`
+            `Heap Used: ${heapUsedMB}MB (Max: ${maxThreshold}MB)`
         );
-        this.adjustChunkSize(
-          this.currentChunkSize,
-          config.chunkSize.REDUCTION_FACTOR,
-          onChunkSizeChange
-        );
+        this.adjustChunkSize(this.currentChunkSize, reductionFactor, onChunkSizeChange);
         this.stableMemoryCount = 0;
-      } else if (heapUsedMB >= config.thresholds.CRITICAL) {
+      } else if (heapUsedMB >= criticalThreshold) {
         this.logger.warn(
           `WARNING: Memory usage approaching maximum! ` +
-            `Heap Used: ${heapUsedMB}MB (Critical: ${config.thresholds.CRITICAL}MB)`
+            `Heap Used: ${heapUsedMB}MB (Critical: ${criticalThreshold}MB)`
         );
-        this.adjustChunkSize(
-          this.currentChunkSize,
-          config.chunkSize.REDUCTION_FACTOR,
-          onChunkSizeChange
-        );
+        this.adjustChunkSize(this.currentChunkSize, reductionFactor, onChunkSizeChange);
         this.stableMemoryCount = 0;
-      } else if (heapUsedMB >= config.thresholds.WARNING) {
+      } else if (heapUsedMB >= warningThreshold) {
         this.logger.warn(
           `WARNING: Memory usage is high! ` +
-            `Heap Used: ${heapUsedMB}MB (Warning: ${config.thresholds.WARNING}MB)`
+            `Heap Used: ${heapUsedMB}MB (Warning: ${warningThreshold}MB)`
         );
-        this.adjustChunkSize(
-          this.currentChunkSize,
-          config.chunkSize.REDUCTION_FACTOR,
-          onChunkSizeChange
-        );
+        this.adjustChunkSize(this.currentChunkSize, reductionFactor, onChunkSizeChange);
         this.stableMemoryCount = 0;
       }
 
       // Check for stable memory usage
-      if (Math.abs(heapUsedMB - this.lastMemoryUsage) < config.monitoring.STABLE_MEMORY_DELTA) {
+      if (Math.abs(heapUsedMB - this.lastMemoryUsage) < stableDelta) {
         this.stableMemoryCount++;
-        if (this.stableMemoryCount >= config.monitoring.STABLE_MEMORY_THRESHOLD) {
-          this.adjustChunkSize(
-            this.currentChunkSize,
-            config.chunkSize.INCREASE_FACTOR,
-            onChunkSizeChange
-          );
+        if (this.stableMemoryCount >= stableThreshold) {
+          this.adjustChunkSize(this.currentChunkSize, increaseFactor, onChunkSizeChange);
           this.stableMemoryCount = 0;
         }
       } else {
@@ -121,7 +112,7 @@ export class MemoryMonitorService {
 
       // Emit memory metrics event
       this.eventEmitter.emit('memoryMetrics', metrics);
-    }, config.monitoring.CHECK_INTERVAL_MS);
+    }, checkInterval);
   }
 
   private adjustChunkSize(
@@ -129,16 +120,13 @@ export class MemoryMonitorService {
     factor: number,
     onChunkSizeChange: (newSize: number) => void
   ): void {
-    const config = this.configService.get<MemoryMonitorConfig>('memoryMonitor');
-    if (!config) {
-      throw new Error('Memory monitor configuration not found');
-    }
+    const minChunkSize =
+      this.configService.get<number>('memoryMonitor.chunkSize.MIN') ?? 256 * 1024;
+    const maxChunkSize =
+      this.configService.get<number>('memoryMonitor.chunkSize.MAX') ?? 4 * 1024 * 1024;
 
     const newChunkSize = Math.floor(currentSize * factor);
-    const adjustedChunkSize = Math.max(
-      config.chunkSize.MIN,
-      Math.min(config.chunkSize.MAX, newChunkSize)
-    );
+    const adjustedChunkSize = Math.max(minChunkSize, Math.min(maxChunkSize, newChunkSize));
 
     if (adjustedChunkSize !== currentSize) {
       this.currentChunkSize = adjustedChunkSize;
