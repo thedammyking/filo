@@ -9,19 +9,28 @@ import {
   IsUrl,
   IsOptional,
   IsNumber,
-  Min
+  Min,
+  IsDateString,
+  Matches
 } from 'class-validator';
 import { type UploadStatus, type UploadType } from '@filo/interfaces';
 import { UPLOAD_STATUS, UPLOAD_TYPE } from '@filo/libs/constants';
-import type { Storage } from '@/modules/storage/entities/storage.entity';
 import { Type } from 'class-transformer';
+import type { Storage } from '@/modules/storage/entities/storage.entity';
 
 export class LinkDto {
   @ApiProperty({
     description: 'Download or magnet link'
   })
-  @IsUrl({ require_protocol: true, protocols: ['https'] })
-  link: string;
+  @IsString()
+  @Matches(
+    /^(https:\/\/[^\s]+|magnet:\?(?:xt=urn:[a-z0-9]+:[a-zA-Z0-9]{32,}|xl=\d+|dn=[^&]+|tr=[^&]+|kt=[^&]+|mt=[^&]+|xs=[^&]+|as=[^&]+|ws=[^&]+)(?:&(?:xt=urn:[a-z0-9]+:[a-zA-Z0-9]{32,}|xl=\d+|dn=[^&]+|tr=[^&]+|kt=[^&]+|mt=[^&]+|xs=[^&]+|as=[^&]+|ws=[^&]+))*)$/,
+    {
+      message: 'Link must be either a valid HTTPS URL or a valid magnet link'
+    }
+  )
+  @IsOptional()
+  link?: string;
 
   @ApiProperty({
     enum: UPLOAD_TYPE,
@@ -29,6 +38,14 @@ export class LinkDto {
   })
   @IsEnum(UPLOAD_TYPE)
   type: UploadType;
+
+  @ApiProperty({
+    type: String,
+    description: 'File name'
+  })
+  @IsString()
+  @IsOptional()
+  fileName?: string;
 }
 
 export class CreateUploadDto {
@@ -62,6 +79,8 @@ export class UpdateUploadDto {
     description: 'Upload progress (0-100)'
   })
   @IsOptional()
+  @IsNumber()
+  @Min(0)
   progress?: number;
 
   @ApiProperty({
@@ -69,6 +88,7 @@ export class UpdateUploadDto {
     description: 'File name'
   })
   @IsOptional()
+  @IsString()
   fileName?: string;
 
   @ApiProperty({
@@ -78,7 +98,7 @@ export class UpdateUploadDto {
   })
   @IsOptional()
   @IsString()
-  error?: string;
+  error?: string | null;
 
   @ApiProperty({
     description: 'Size of the uploaded file in bytes',
@@ -89,6 +109,20 @@ export class UpdateUploadDto {
   @IsNumber()
   @Min(0)
   fileSize?: number;
+
+  @ApiProperty({
+    description: 'Completed at',
+    type: Date,
+    nullable: true
+  })
+  @IsOptional()
+  @IsDateString()
+  completedAt?: Date;
+}
+
+export class StorageResponse {
+  id: string;
+  provider: string;
 }
 
 export class UploadResponse {
@@ -114,7 +148,7 @@ export class UploadResponse {
   userId: string;
 
   @ApiProperty()
-  storage: Storage;
+  storage: StorageResponse;
 
   @ApiProperty()
   createdAt: Date;
@@ -124,4 +158,10 @@ export class UploadResponse {
 
   @ApiProperty({ nullable: true })
   completedAt: Date;
+
+  @ApiProperty({ nullable: true })
+  fileSize?: number;
+
+  @ApiProperty({ nullable: true })
+  error?: string;
 }

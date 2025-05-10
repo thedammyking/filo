@@ -9,6 +9,7 @@ import { UPLOAD_STATUS, UPLOAD_TYPE } from '@filo/libs/constants';
 import { Upload } from '../entities/upload.entity';
 import { FileService, FileDetails } from '@/modules/file/file.service';
 import { SecurityService } from '@/modules/security/security.service';
+import { TorrentService } from '@/modules/torrent/torrent.service';
 
 @Injectable()
 @Processor(UPLOAD_QUEUE)
@@ -20,7 +21,8 @@ export class UploadConsumerService extends WorkerHost {
     private readonly storageService: StorageService,
     @InjectQueue(UPLOAD_QUEUE) private readonly uploadQueue: Queue,
     private readonly fileService: FileService,
-    private readonly securityService: SecurityService
+    private readonly securityService: SecurityService,
+    private readonly torrentService: TorrentService
   ) {
     super();
     this.logger.log('UploadConsumerService initialized and listening for jobs.');
@@ -178,14 +180,15 @@ export class UploadConsumerService extends WorkerHost {
           return { success: true };
 
         case UPLOAD_TYPE.MAGNET:
-          this.logger.warn(
-            `${userLogPrefix} MAGNET link processing is not yet implemented for upload ID: ${uploadId}.`
+          this.logger.log(`${userLogPrefix} Starting MAGNET type processing.`);
+          // Delegate to TorrentService
+          await this.torrentService.handleMagnetUpload(upload);
+          this.logger.log(
+            `${userLogPrefix} MAGNET type processing initiated through TorrentService.`
           );
-          await this.uploadsService.update(uploadId, {
-            status: UPLOAD_STATUS.FAILED,
-            error: 'Magnet link processing is not yet supported.'
-          });
-          throw new Error('Magnet link processing is not yet supported.');
+          // The TorrentService will be responsible for updating status internally for its operations.
+          // If handleMagnetUpload throws, it will be caught by the main catch block.
+          return { success: true, message: 'Torrent processing delegated.' }; // Or a more specific result
 
         default:
           const unknownTypeErrorMessage = `Unknown upload type: ${upload.type}.`;

@@ -13,6 +13,7 @@ import { StorageModule } from '@/modules/storage/storage.module';
 import { UsersModule } from '@/modules/users/users.module';
 import { UploadsModule } from '@/modules/uploads/uploads.module';
 import { QueueModule } from '@/modules/queue/queue.module';
+import { TorrentModule } from '@/modules/torrent/torrent.module';
 
 import { AppController } from './app.controller';
 import { CatchEverythingFilter } from '@/commons/filters/catch-everything.filter';
@@ -46,7 +47,8 @@ import { CatchEverythingFilter } from '@/commons/filters/catch-everything.filter
     AuthModule,
     StorageModule,
     UploadsModule,
-    QueueModule
+    QueueModule,
+    TorrentModule
   ],
   providers: [
     { provide: APP_PIPE, useValue: new ValidationPipe({ whitelist: true }) },

@@ -18,7 +18,11 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@ne
 import { CurrentUser } from '@/commons/decorators/current-user.decorator';
 import type { User } from '@filo/interfaces';
 import { CreateUploadDto, UpdateUploadDto, UploadResponse } from './dto/upload.dto';
-import type { UploadStatus, PaginatedResponse } from '@filo/interfaces';
+import type {
+  UploadStatus,
+  PaginatedResponse,
+  UploadResponse as UploadResponseType
+} from '@filo/interfaces';
 import { UploadsService } from './uploads.service';
 import { UPLOAD_STATUS } from '@filo/libs/constants';
 import type { Upload } from './entities/upload.entity';
@@ -47,7 +51,7 @@ export class UploadsController {
   async createUploads(
     @Body() createUploadDto: CreateUploadDto,
     @CurrentUser() user: User
-  ): Promise<UploadResponse[]> {
+  ): Promise<UploadResponseType[]> {
     this.logger.log(
       `[${user.id}] createUploads - Request received. StorageId: ${createUploadDto.storageId}, Links: ${createUploadDto.links.length}`
     );
@@ -91,7 +95,7 @@ export class UploadsController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Returns all uploads',
-    type: PaginatedResponseDto<UploadResponse>
+    type: PaginatedResponseDto<UploadResponseType>
   })
   async findAll(
     @CurrentUser() user: User,
@@ -99,7 +103,7 @@ export class UploadsController {
     @Query('storageId') storageId?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number
-  ): Promise<PaginatedResponse<UploadResponse>> {
+  ): Promise<PaginatedResponse<UploadResponseType>> {
     this.logger.log(
       `[${user.id}] findAll - Request received. Status: ${status}, StorageId: ${storageId}, Page: ${page}, Limit: ${limit}`
     );
@@ -122,7 +126,7 @@ export class UploadsController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('storageId') storageId?: string
-  ): Promise<PaginatedResponse<UploadResponse>> {
+  ): Promise<PaginatedResponse<UploadResponseType>> {
     this.logger.log(
       `[${user.id}] findPending - Request received. StorageId: ${storageId}, Page: ${page}, Limit: ${limit}`
     );
@@ -148,7 +152,7 @@ export class UploadsController {
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: User
-  ): Promise<UploadResponse> {
+  ): Promise<UploadResponseType> {
     this.logger.log(`[${user.id}] findOne - Request received for ID: ${id}`);
     const upload = await this.uploadsService.findOne(id, user.id);
     this.logger.log(`[${user.id}] findOne - Returning upload ID: ${id}`);
@@ -166,7 +170,7 @@ export class UploadsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUploadDto: UpdateUploadDto,
     @CurrentUser() user: User
-  ): Promise<UploadResponse> {
+  ): Promise<UploadResponseType> {
     this.logger.log(
       `[${user.id}] update - Request received for ID: ${id}. Status: ${updateUploadDto.status ?? 'N/A'}`
     );
@@ -203,7 +207,7 @@ export class UploadsController {
   async cancelUpload(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: User
-  ): Promise<UploadResponse> {
+  ): Promise<UploadResponseType> {
     this.logger.log(`[${user.id}] cancelUpload - Request received for ID: ${id}`);
     const cancelledUpload = await this.uploadsService.cancelUpload(id, user.id);
     this.logger.log(`[${user.id}] cancelUpload - Cancelled upload ID: ${id}`);

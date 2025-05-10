@@ -12,6 +12,7 @@ import { UPLOAD_QUEUE } from '@/modules/queue/queue.constants';
 import { UploadConsumerService } from './consumers/upload.consumer.service';
 import { FileModule } from '@/modules/file/file.module';
 import { SecurityModule } from '@/modules/security/security.module';
+import { TorrentModule } from '@/modules/torrent/torrent.module';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { SecurityModule } from '@/modules/security/security.module';
       name: UPLOAD_QUEUE
     }),
     FileModule,
-    SecurityModule
+    SecurityModule,
+    TorrentModule
   ],
   controllers: [UploadsController],
   providers: [UploadsService, UploadConsumerService],

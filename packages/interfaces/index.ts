@@ -54,9 +54,24 @@ export interface Storage {
   id: string;
   userId: string;
   provider: StorageProvider;
-  accessToken: string;
+  accessToken?: string;
   refreshToken?: string;
   expiryDate?: number;
+  config?: {
+    folderId?: string;
+    [key: string]: any;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UploadStreamProviderOptions {
+  stream: Readable | NodeJS.ReadableStream;
+  filename: string; // Relative path within the subdirectory for the provider to use
+  mimetype?: string;
+  storageDetails: Storage; // Assuming Storage here is your Storage entity interface
+  subdirectory?: string; // For grouping files, e.g., in a torrent
+  fileSize?: number; // Total size of the file being streamed
 }
 
 export interface IStorageProvider {
@@ -72,12 +87,7 @@ export interface IStorageProvider {
    * @param options - Options including the stream, filename, mimetype, and storage entity details.
    * @returns Provider-specific result (e.g., file ID, URL).
    */
-  uploadStream(options: {
-    stream: Readable;
-    filename: string;
-    mimetype?: string;
-    storageDetails: Storage;
-  }): Promise<any>;
+  uploadStream(options: UploadStreamProviderOptions): Promise<any>;
 }
 
 export interface WithData<T> {

@@ -38,6 +38,14 @@ export class Storage extends BaseEntity {
   @Column({ name: 'last_updated', type: 'timestamp', nullable: true })
   lastUpdated: Date;
 
+  @Column({
+    name: 'config',
+    type: 'jsonb',
+    nullable: true,
+    comment: "Provider-specific configurations, e.g., { folderId: 'abc' }"
+  })
+  config?: { folderId?: string; [key: string]: any };
+
   @Transform(({ value }) => value.map(upload => upload.id))
   @OneToMany(() => Upload, upload => upload.storage)
   uploads: Upload[];

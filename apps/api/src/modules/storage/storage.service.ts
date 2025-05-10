@@ -5,7 +5,6 @@ import {
   InternalServerErrorException,
   Logger
 } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { Storage } from './entities/storage.entity';
@@ -16,11 +15,13 @@ import { GoogleDriveProvider } from './providers/google-drive.provider';
 import type { IStorageProvider, StorageProvider } from '@filo/interfaces';
 
 interface UploadStreamOptions {
-  stream: Readable;
+  stream: Readable | NodeJS.ReadableStream;
   filename: string;
   storageId: string;
   userId: string;
   mimetype?: string; // Optional: Mimetype might be useful for providers
+  subdirectory?: string; // Added subdirectory for torrents
+  fileSize?: number; // Added fileSize for potential use by providers (e.g., progress)
 }
 
 @Injectable()
@@ -71,9 +72,9 @@ export class StorageService {
   }
 
   async uploadStream(options: UploadStreamOptions): Promise<any> {
-    const { storageId, userId, stream, filename, mimetype } = options;
+    const { storageId, userId, stream, filename, mimetype, subdirectory, fileSize } = options;
     this.logger.log(
-      `[${userId}] uploadStream - Initiating stream upload. StorageId: ${storageId}, Filename: ${filename}`
+      `[${userId}] uploadStream - Initiating stream upload. StorageId: ${storageId}, Filename: ${filename}, Subdirectory: ${subdirectory || 'N/A'}`
     );
 
     try {
@@ -100,7 +101,9 @@ export class StorageService {
         stream,
         filename,
         mimetype,
-        storageDetails: storage
+        storageDetails: storage,
+        subdirectory,
+        fileSize
       });
 
       this.logger.log(
