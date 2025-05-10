@@ -160,10 +160,9 @@ export class UploadConsumerService extends WorkerHost {
             `${userLogPrefix} Starting stream upload to storage provider for file: ${finalFilename}`
           );
 
-          await this.storageService.uploadStream({
+          await this.storageService.uploadStream(fileDetails.stream, {
             storageId: upload.storage.id,
             userId: userId,
-            stream: fileDetails.stream,
             filename: finalFilename,
             mimetype: fileDetails.contentType,
             fileSize: fileDetails.contentLength,

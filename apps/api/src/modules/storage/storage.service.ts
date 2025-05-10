@@ -13,9 +13,10 @@ import { Readable, Transform } from 'stream';
 import { STORAGE_PROVIDER } from '@filo/libs/constants';
 import { GoogleDriveProvider } from './providers/google-drive.provider';
 import type { IStorageProvider, StorageProvider } from '@filo/interfaces';
+import { MemoryMonitorService } from '../memory-monitor/memory-monitor.service';
+import { ConfigService } from '@nestjs/config';
 
 interface UploadStreamOptions {
-  stream: Readable | NodeJS.ReadableStream;
   filename: string;
   storageId: string;
   userId: string;
@@ -29,15 +30,27 @@ interface UploadStreamOptions {
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   private providers: Map<StorageProvider, IStorageProvider>;
+  private currentChunkSize: number;
 
   constructor(
     @InjectRepository(Storage)
     private readonly storageRepository: Repository<Storage>,
-    private readonly googleDriveProvider: GoogleDriveProvider
+    private readonly googleDriveProvider: GoogleDriveProvider,
+    private readonly memoryMonitor: MemoryMonitorService,
+    private readonly configService: ConfigService
   ) {
     this.providers = new Map<StorageProvider, IStorageProvider>([
       [STORAGE_PROVIDER.GOOGLE_DRIVE, googleDriveProvider]
     ]);
+
+    const config = this.configService.get('memoryMonitor');
+    if (!config) {
+      throw new Error('Memory monitor configuration not found');
+    }
+    this.currentChunkSize = config.chunkSize.DEFAULT;
+    this.memoryMonitor.startMonitoring(newSize => {
+      this.currentChunkSize = newSize;
+    });
   }
 
   getProvider(provider: StorageProvider): IStorageProvider {
@@ -73,96 +86,105 @@ export class StorageService {
   }
 
   private createProgressTrackingStream(
-    stream: Readable,
     fileSize: number,
-    onProgress: (progress: number) => Promise<void>
-  ): Readable {
+    onProgress: (progress: number) => void
+  ): Transform {
+    const logger = this.logger;
     let bytesProcessed = 0;
     let lastProgressUpdate = 0;
-    const PROGRESS_UPDATE_THRESHOLD = 3; // Update every 3%
-    const logger = this.logger;
+    const PROGRESS_UPDATE_THRESHOLD = 0.03; // Update every 3%
 
-    return stream.pipe(
-      new Transform({
-        transform(chunk, encoding, callback) {
-          bytesProcessed += chunk.length;
-          const currentProgress = Math.floor((bytesProcessed / fileSize) * 100);
+    return new Transform({
+      transform(chunk, encoding, callback) {
+        bytesProcessed += chunk.length;
+        const progress = bytesProcessed / fileSize;
 
-          // Only update if we've crossed the threshold
-          if (currentProgress - lastProgressUpdate >= PROGRESS_UPDATE_THRESHOLD) {
-            onProgress(currentProgress).catch(error => {
-              logger.error('Failed to update progress:', error);
-            });
-            lastProgressUpdate = currentProgress;
+        // Only update if progress has increased by at least 3%
+        if (progress - lastProgressUpdate >= PROGRESS_UPDATE_THRESHOLD) {
+          const progressPercent = Math.floor(progress * 100);
+          try {
+            onProgress(progressPercent);
+            lastProgressUpdate = progress;
+          } catch (error) {
+            logger.error(`Error updating progress: ${error.message}`);
           }
-
-          callback(null, chunk);
         }
-      })
-    );
+
+        callback(null, chunk);
+      }
+    });
   }
 
-  async uploadStream(options: UploadStreamOptions): Promise<any> {
-    const { storageId, userId, stream, filename, mimetype, subdirectory, fileSize, onProgress } =
-      options;
+  async uploadStream(
+    stream: Readable | NodeJS.ReadableStream,
+    options: UploadStreamOptions
+  ): Promise<string> {
+    const { fileSize, onProgress, ...uploadOptions } = options;
+
+    // Create a progress tracking stream if fileSize and onProgress are provided
+    const uploadStream =
+      fileSize && onProgress
+        ? stream.pipe(this.createProgressTrackingStream(fileSize, onProgress))
+        : stream;
+
+    // Use the current chunk size for the upload
+    const uploadResult = await this.uploadToStorage(uploadStream, {
+      ...uploadOptions,
+      highWaterMark: this.currentChunkSize
+    });
+
+    return uploadResult;
+  }
+
+  private async uploadToStorage(
+    stream: Readable | NodeJS.ReadableStream,
+    options: {
+      filename: string;
+      storageId: string;
+      userId: string;
+      mimetype?: string;
+      subdirectory?: string;
+      highWaterMark: number;
+    }
+  ): Promise<string> {
+    const { filename, storageId, userId, mimetype, subdirectory, highWaterMark } = options;
     this.logger.log(
       `[${userId}] uploadStream - Initiating stream upload. StorageId: ${storageId}, Filename: ${filename}, Subdirectory: ${subdirectory || 'N/A'}`
     );
 
     try {
-      const storage = await this.storageRepository.findOne({ where: { id: storageId, userId } });
+      const storage = await this.storageRepository.findOne({
+        where: { id: storageId, userId }
+      });
 
       if (!storage) {
-        this.logger.warn(
-          `[${userId}] uploadStream - Storage configuration not found for ID: ${storageId}`
-        );
-        throw new NotFoundException(
-          `Storage configuration with ID "${storageId}" not found for the user.`
-        );
+        throw new Error(`Storage not found for id: ${storageId}`);
       }
 
-      this.logger.log(
-        `[${userId}] uploadStream - Found storage config ${storageId}, proceeding with provider: ${storage.provider}`
-      );
       const provider = this.getProvider(storage.provider);
-
-      // Create progress tracking stream if fileSize and onProgress are provided
-      const uploadStream =
-        fileSize && onProgress
-          ? this.createProgressTrackingStream(stream as Readable, fileSize, onProgress)
-          : stream;
 
       this.logger.log(
         `[${userId}] uploadStream - Calling ${storage.provider} provider's uploadStream method. Filename: ${filename}`
       );
       const result = await provider.uploadStream({
-        stream: uploadStream,
+        stream,
         filename,
         mimetype,
         storageDetails: storage,
         subdirectory,
-        fileSize
+        fileSize: highWaterMark // Use highWaterMark as fileSize for now
       });
 
       this.logger.log(
-        `[${userId}] uploadStream - Provider uploadStream completed successfully for storage ${storageId}, Filename: ${filename}`
+        `[${userId}] uploadStream - Successfully uploaded stream to ${storage.provider}. Filename: ${filename}`
       );
       return result;
     } catch (error) {
       this.logger.error(
-        `[${userId}] uploadStream - Failed for storage ${storageId}, Filename: ${filename}. Error: ${error.message}`,
+        `[${userId}] uploadStream - Error uploading stream: ${error.message}`,
         error.stack
       );
-      if (
-        error instanceof NotFoundException ||
-        error instanceof UnauthorizedException ||
-        error instanceof InternalServerErrorException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        `Failed to upload stream for storage ${storageId}. Filename: ${filename}`
-      );
+      throw error;
     }
   }
 }

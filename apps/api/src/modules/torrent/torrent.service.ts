@@ -109,10 +109,9 @@ export class TorrentService implements OnModuleInit {
           const fileStream = await this.torrentWorker.getFileStream(torrentInfo.infoHash, i);
 
           this.logger.log(`${fileLogPrefix} Uploading to storage. Subdir: ${subDirectoryName}`);
-          await this.storageService.uploadStream({
+          await this.storageService.uploadStream(fileStream, {
             storageId: storage.id,
             userId: userId,
-            stream: fileStream,
             filename: file.name,
             mimetype: this.getMimeType(file.name),
             subdirectory: subDirectoryName,

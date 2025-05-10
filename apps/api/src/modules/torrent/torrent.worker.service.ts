@@ -1,10 +1,14 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Worker } from 'worker_threads';
 import { join } from 'path';
 import { EventEmitter } from 'events';
 import { Readable, PassThrough } from 'stream';
-
-const CHUNK_SIZE = 512 * 1024; // 512KB chunks
+import {
+  MemoryMonitorService,
+  MemoryThresholds,
+  ChunkSizeConfig
+} from '../memory-monitor/memory-monitor.service';
 
 @Injectable()
 export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -13,6 +17,30 @@ export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {
   private eventEmitter = new EventEmitter();
   private isWorkerReady = false;
   private activeStreams = new Map<string, { stream: Readable; cleanup: () => void }>();
+  private currentChunkSize: number;
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly memoryMonitor: MemoryMonitorService
+  ) {
+    const config = this.configService.get('memoryMonitor');
+    if (!config) {
+      throw new Error('Memory monitor configuration not found');
+    }
+    this.currentChunkSize = config.chunkSize.DEFAULT;
+    this.memoryMonitor.startMonitoring(newSize => {
+      this.currentChunkSize = newSize;
+      // Update highWaterMark for all active streams
+      if (this.worker) {
+        this.worker.postMessage({
+          type: 'UPDATE_CHUNK_SIZE',
+          data: {
+            chunkSize: newSize
+          }
+        });
+      }
+    });
+  }
 
   async onModuleInit() {
     try {
@@ -37,7 +65,7 @@ export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {
 
     this.worker.on('error', error => {
       this.logger.error('Worker error:', error);
-      this.eventEmitter.emit('ERROR', { error: error.message });
+      this.eventEmitter.emit('TORRENT_ERROR', { error: error.message });
       this.isWorkerReady = false;
     });
 
@@ -70,38 +98,33 @@ export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {
     infoHash: string;
     files: Array<{ name: string; length: number }>;
   }> {
-    if (!this.worker || !this.isWorkerReady) {
-      throw new Error('Torrent worker not initialized or not ready');
+    if (!this.worker) {
+      await this.initializeWorker();
     }
 
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.eventEmitter.removeAllListeners('TORRENT_READY');
-        this.eventEmitter.removeAllListeners('TORRENT_ERROR');
-        reject(new Error('Torrent add operation timed out'));
-      }, 60000); // 60 second timeout
+      if (!this.worker) {
+        reject(new Error('Worker not initialized'));
+        return;
+      }
 
-      const readyHandler = (data: any) => {
-        clearTimeout(timeout);
-        this.logger.log(`Torrent ready: ${data.name}`);
-        this.eventEmitter.removeListener('TORRENT_ERROR', errorHandler);
-        resolve(data);
+      const messageHandler = (message: any) => {
+        if (message.type === 'TORRENT_ADDED') {
+          this.worker?.removeListener('message', messageHandler);
+          resolve(message.data);
+        } else if (message.type === 'TORRENT_ERROR') {
+          this.worker?.removeListener('message', messageHandler);
+          reject(new Error(message.error));
+        }
       };
 
-      const errorHandler = (data: any) => {
-        clearTimeout(timeout);
-        this.logger.error(`Torrent error: ${data.error}`);
-        this.eventEmitter.removeListener('TORRENT_READY', readyHandler);
-        reject(new Error(data.error));
-      };
-
-      this.eventEmitter.once('TORRENT_READY', readyHandler);
-      this.eventEmitter.once('TORRENT_ERROR', errorHandler);
-
-      this.logger.log(`Sending ADD_TORRENT message for: ${magnetURI}`);
-      this.worker!.postMessage({
+      this.worker.on('message', messageHandler);
+      this.worker.postMessage({
         type: 'ADD_TORRENT',
-        data: { magnetURI }
+        data: {
+          magnetURI,
+          chunkSize: this.currentChunkSize
+        }
       });
     });
   }
@@ -119,7 +142,7 @@ export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`Creating stream for ${streamKey}`);
 
     const passThrough = new PassThrough({
-      highWaterMark: CHUNK_SIZE
+      highWaterMark: this.currentChunkSize
     });
 
     let isPaused = false;
@@ -243,6 +266,8 @@ export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    this.memoryMonitor.stopMonitoring();
+
     // Cancel all active streams
     for (const [streamKey, { cleanup }] of this.activeStreams.entries()) {
       this.logger.log(`Cleaning up stream for ${streamKey} during shutdown`);

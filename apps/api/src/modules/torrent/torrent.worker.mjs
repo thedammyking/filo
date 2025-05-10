@@ -18,6 +18,8 @@ const activeStreams = new Map();
 // Send ready signal to main thread
 parentPort.postMessage({ type: 'WORKER_READY' });
 
+let currentChunkSize = 512 * 1024; // Default to 512KB
+
 // Handle messages from the main thread
 parentPort.on('message', async message => {
   const { type, data } = message;
@@ -26,7 +28,13 @@ parentPort.on('message', async message => {
   try {
     switch (type) {
       case 'ADD_TORRENT': {
-        const { magnetURI } = data;
+        if (!data || !data.magnetURI) {
+          throw new Error('Invalid message: magnetURI is required');
+        }
+        const { magnetURI, chunkSize } = data;
+        if (chunkSize) {
+          currentChunkSize = chunkSize;
+        }
         console.log(`Adding torrent: ${magnetURI}`);
 
         // Check if torrent already exists
@@ -34,7 +42,7 @@ parentPort.on('message', async message => {
         if (existingTorrent) {
           console.log('Torrent already exists, returning existing info');
           parentPort.postMessage({
-            type: 'TORRENT_READY',
+            type: 'TORRENT_ADDED',
             data: {
               name: existingTorrent.name,
               infoHash: existingTorrent.infoHash,
@@ -54,7 +62,7 @@ parentPort.on('message', async message => {
 
           // Send ready event immediately after adding
           parentPort.postMessage({
-            type: 'TORRENT_READY',
+            type: 'TORRENT_ADDED',
             data: {
               name: torrent.name,
               infoHash: torrent.infoHash,
@@ -88,6 +96,24 @@ parentPort.on('message', async message => {
         break;
       }
 
+      case 'UPDATE_CHUNK_SIZE': {
+        if (!data || typeof data.chunkSize !== 'number') {
+          throw new Error('Invalid message: chunkSize is required and must be a number');
+        }
+        currentChunkSize = data.chunkSize;
+        console.log(`Updating chunk size to ${currentChunkSize / 1024}KB`);
+        // Update highWaterMark for all active torrents
+        for (const torrent of client.torrents) {
+          for (const file of torrent.files) {
+            if (file.stream) {
+              file.stream.destroy();
+              file.createReadStream({ highWaterMark: currentChunkSize });
+            }
+          }
+        }
+        break;
+      }
+
       case 'GET_FILE_STREAM': {
         const { infoHash, fileIndex } = data;
         const torrent = client.get(infoHash);
@@ -102,7 +128,7 @@ parentPort.on('message', async message => {
         }
 
         // Create a readable stream for the file
-        const stream = file.createReadStream();
+        const stream = file.createReadStream({ highWaterMark: currentChunkSize });
         const streamKey = `${infoHash}:${fileIndex}`;
         let isStreaming = true;
 
