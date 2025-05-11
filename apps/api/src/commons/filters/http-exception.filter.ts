@@ -8,15 +8,6 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-// Define a type for the request object augmented by Clerk middleware
-// This helps with type safety when accessing request.auth
-interface RequestWithAuth extends Request {
-  auth?: {
-    userId?: string;
-    // Add other properties from Clerk's auth object if needed
-  };
-}
-
 @Catch() // Catch all exceptions if no specific type is provided
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
@@ -24,8 +15,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    // Cast the request to our custom type
-    const request = ctx.getRequest<RequestWithAuth>();
+    // Use the standard Request type, which is now augmented globally
+    const request = ctx.getRequest<Request>();
 
     const status =
       exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
@@ -34,6 +25,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException ? exception.message : 'Internal server error';
 
     // Use request.auth.userId provided by Clerk middleware
+    // The 'auth' property on 'request' will be typed as AuthObject (from globals.d.ts)
     const userId = request.auth?.userId || 'anonymous';
     const errorResponse = {
       statusCode: status,

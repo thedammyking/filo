@@ -1,18 +1,18 @@
-import { Logger, VersioningType } from '@nestjs/common';
+import { VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 
 import { AppModule } from '@/modules/app/app.module';
 import { HttpExceptionFilter } from '@/commons/filters/http-exception.filter';
-import { LoggingInterceptor } from '@/commons/interceptors/logging.interceptor';
 
 const PORT = process.env.PORT || 4000;
-const logger = new Logger('Bootstrap');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  app.useLogger(app.get(Logger));
+  app.useGlobalInterceptors(new LoggerErrorInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
 
   app.enableCors({
@@ -40,10 +40,10 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document);
 
   await app.listen(PORT);
-  logger.log(`🚀 Application listening on port ${PORT}`);
+  app.get(Logger).log(`🚀 Application listening on port ${PORT}`);
 }
 
 bootstrap().catch(error => {
-  logger.error('❌ Error during bootstrap', error);
+  console.error('❌ Error during bootstrap', error);
   process.exit(1);
 });

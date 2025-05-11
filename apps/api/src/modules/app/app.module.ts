@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { LoggerModule } from 'nestjs-pino';
+import { randomUUID } from 'crypto';
 
 import { HttpExceptionFilter } from '@/commons/filters/http-exception.filter';
 import { ResponseInterceptor } from '@/commons/interceptors/response.interceptor';
@@ -23,6 +25,52 @@ import { CatchEverythingFilter } from '@/commons/filters/catch-everything.filter
   imports: [
     ConfigModule.forRoot({
       isGlobal: true
+    }),
+    LoggerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const isProduction = configService.get<string>('NODE_ENV') === 'production';
+        const serviceName = configService.get<string>('SERVICE_NAME', 'filo-api');
+
+        return {
+          pinoHttp: {
+            genReqId: (req, res) => {
+              const existingID = req.id ?? req.headers['x-request-id'];
+              if (existingID) return existingID;
+              const id = randomUUID();
+              res.setHeader('X-Request-Id', id);
+              return id;
+            },
+            customProps: (req, res) => {
+              const userId = (req as Express.Request).auth?.userId;
+              return {
+                context: 'HTTP',
+                service: serviceName,
+                environment: configService.get<string>('NODE_ENV'),
+                ...(userId && { userId })
+              };
+            },
+            redact: {
+              paths: ['req.headers.authorization', 'req.headers.cookie'],
+              censor: '**REDACTED**'
+            },
+            transport: !isProduction
+              ? {
+                  target: 'pino-pretty',
+                  options: {
+                    singleLine: true,
+                    colorize: true,
+                    levelFirst: true,
+                    translateTime: 'SYS:standard',
+                    ignore: 'pid,hostname,reqId,context,service,environment'
+                  }
+                }
+              : undefined,
+            level: isProduction ? 'info' : 'debug'
+          }
+        };
+      }
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
