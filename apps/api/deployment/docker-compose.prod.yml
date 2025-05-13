@@ -1,0 +1,150 @@
+services:
+  # NestJS API Application
+  nestjs_app:
+    image: thedammyking/filo-api:latest # Replace with your actual image name and tag
+    container_name: filo_api_service_prod
+    restart: unless-stopped
+    networks:
+      - filo_prod_network # Use environment-specific network
+    ports:
+      # Expose a port on the host if Nginx is running on the host and needs to proxy to it.
+      # If Nginx is also a Docker container on filo-network, this port mapping might not be needed,
+      # and Nginx would proxy to nestjs_app:4000 (or whatever PORT the app runs on).
+      - '${API_HOST_PORT:-4000}:${PORT:-4000}'
+    environment:
+      - NODE_ENV=production
+      - PORT=${PORT:-4000}
+      - SERVICE_NAME=filo-api
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_db:5432/${POSTGRES_DB}
+      - REDIS_HOST=redis_service
+      - REDIS_PORT=6379
+      # - REDIS_PASSWORD=${REDIS_PASSWORD} # If Redis password is set
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY} # If needed by backend
+      - FRONTEND_URL=${FRONTEND_URL}
+      # Add any other required environment variables for your API
+      - LOKI_ENDPOINT=${LOKI_ENDPOINT} # For Pino if it directly sends or for reference
+      - GRAFANA_CLOUD_USER_ID=${GRAFANA_CLOUD_USER_ID}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+      - THROTTLE_TTL=${THROTTLE_TTL} # Added for rate limiting
+      - THROTTLE_LIMIT=${THROTTLE_LIMIT} # Added for rate limiting
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - MEMORY_WARNING_THRESHOLD=${MEMORY_WARNING_THRESHOLD}
+      - MEMORY_CRITICAL_THRESHOLD=${MEMORY_CRITICAL_THRESHOLD}
+      - MEMORY_MAX_THRESHOLD=${MEMORY_MAX_THRESHOLD}
+      - CHUNK_SIZE_DEFAULT=${CHUNK_SIZE_DEFAULT}
+      - CHUNK_SIZE_MIN=${CHUNK_SIZE_MIN}
+      - CHUNK_SIZE_MAX=${CHUNK_SIZE_MAX}
+      - CHUNK_SIZE_REDUCTION_FACTOR=${CHUNK_SIZE_REDUCTION_FACTOR}
+      - CHUNK_SIZE_INCREASE_FACTOR=${CHUNK_SIZE_INCREASE_FACTOR}
+      - STABLE_MEMORY_THRESHOLD=${STABLE_MEMORY_THRESHOLD}
+      - MEMORY_CHECK_INTERVAL_MS=${MEMORY_CHECK_INTERVAL_MS}
+      - STABLE_MEMORY_DELTA=${STABLE_MEMORY_DELTA}
+    labels:
+      - 'vector.dev/source=nestjs_app_logs' # For Vector to discover logs
+    depends_on:
+      - postgres_db
+      - redis_service
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:${PORT:-4000}/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Vector Log Forwarder
+  vector:
+    image: timberio/vector:latest-alpine # Or a specific version like 0.36-alpine
+    container_name: vector_log_forwarder_prod
+    restart: unless-stopped
+    networks:
+      - filo_prod_network # Use environment-specific network
+    volumes:
+      - ./vector.toml:/etc/vector/vector.toml:ro # Adjusted path, assumes config in deployment dir
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Allow Vector to access Docker API for log discovery
+      # - vector_data_prod:/var/lib/vector # Optional: environment-specific volume
+    environment:
+      - LOKI_ENDPOINT=${LOKI_ENDPOINT}
+      - GRAFANA_CLOUD_USER_ID=${GRAFANA_CLOUD_USER_ID}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+      - NODE_ENV=${NODE_ENV:-production} # For Loki labels based on environment
+      - SERVICE_NAME=filo-vector-prod # Renamed for clarity
+      # - LOG_SAMPLE_RATE=10 # If you make sample rate configurable
+    depends_on:
+      - nestjs_app
+
+  # PostgreSQL Database
+  postgres_db:
+    image: postgres:15-alpine # Use a specific version
+    container_name: filo_postgres_db_prod
+    restart: unless-stopped
+    networks:
+      - filo_prod_network # Use environment-specific network
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data # Environment-specific volume
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-filouser}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-filopassword} # Change these in your .env file!
+      - POSTGRES_DB=${POSTGRES_DB:-filodb}
+    # ports:
+    #   # Do NOT expose database ports directly in production unless absolutely necessary and secured.
+    #   - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-filouser} -d ${POSTGRES_DB:-filodb}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (for BullMQ and Caching)
+  redis_service:
+    image: redis:7-alpine # Use a specific version
+    container_name: filo_redis_service_prod
+    restart: unless-stopped
+    networks:
+      - filo_prod_network # Use environment-specific network
+    volumes:
+      - redis_data_prod:/data # Environment-specific volume
+    # command: redis-server --save 60 1 --loglevel warning --requirepass ${REDIS_PASSWORD} # If password and persistence needed
+    # ports:
+    #   # Do NOT expose Redis ports directly in production unless absolutely necessary and secured.
+    #   - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_prod
+    restart: unless-stopped
+    networks:
+      - filo_prod_network
+    ports:
+      - '9090:9090' # Standard Prometheus port for prod
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro # Can use a prometheus.prod.yml if needed
+      - prometheus_data_prod:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - nestjs_app
+
+volumes:
+  postgres_data_prod:
+    driver: local
+  redis_data_prod:
+    driver: local
+  prometheus_data_prod:
+    driver: local
+  # vector_data_prod: # If using disk buffering for Vector
+  #   driver: local
+
+networks:
+  filo_prod_network: # Environment-specific network name
+    driver: bridge

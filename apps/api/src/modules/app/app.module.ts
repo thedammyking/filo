@@ -17,6 +17,7 @@ import { UploadsModule } from '@/modules/uploads/uploads.module';
 import { QueueModule } from '@/modules/queue/queue.module';
 import { TorrentModule } from '@/modules/torrent/torrent.module';
 import { MemoryMonitorModule } from '@/modules/memory-monitor/memory-monitor.module';
+import { MetricsModule } from '@/modules/metrics/metrics.module';
 
 import { AppController } from './app.controller';
 import { CatchEverythingFilter } from '@/commons/filters/catch-everything.filter';
@@ -98,7 +99,8 @@ import { CatchEverythingFilter } from '@/commons/filters/catch-everything.filter
     UploadsModule,
     QueueModule,
     TorrentModule,
-    MemoryMonitorModule
+    MemoryMonitorModule,
+    MetricsModule
   ],
   providers: [
     { provide: APP_PIPE, useValue: new ValidationPipe({ whitelist: true }) },

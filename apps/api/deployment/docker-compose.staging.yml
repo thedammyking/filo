@@ -1,0 +1,142 @@
+services:
+  nestjs_app:
+    image: thedammyking/filo-api:staging # Replace with your actual staging image name and tag
+    container_name: filo_api_service_staging
+    restart: unless-stopped
+    networks:
+      - filo_staging_network
+    ports:
+      - '${API_HOST_PORT:-4001}:${PORT:-4000}' # Example: staging on different host port if needed
+    environment:
+      - NODE_ENV=staging
+      - PORT=${PORT:-4000} # Internal container port
+      - SERVICE_NAME=filo-api-staging
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_db:5432/${POSTGRES_DB}
+      - REDIS_HOST=redis_service
+      - REDIS_PORT=6379
+      # - REDIS_PASSWORD=${REDIS_PASSWORD_STAGING}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - LOKI_ENDPOINT=${LOKI_ENDPOINT}
+      - GRAFANA_CLOUD_USER_ID=${GRAFANA_CLOUD_USER_ID}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+      - THROTTLE_TTL=${THROTTLE_TTL}
+      - THROTTLE_LIMIT=${THROTTLE_LIMIT}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - MEMORY_WARNING_THRESHOLD=${MEMORY_WARNING_THRESHOLD}
+      - MEMORY_CRITICAL_THRESHOLD=${MEMORY_CRITICAL_THRESHOLD}
+      - MEMORY_MAX_THRESHOLD=${MEMORY_MAX_THRESHOLD}
+      - CHUNK_SIZE_DEFAULT=${CHUNK_SIZE_DEFAULT}
+      - CHUNK_SIZE_MIN=${CHUNK_SIZE_MIN}
+      - CHUNK_SIZE_MAX=${CHUNK_SIZE_MAX}
+      - CHUNK_SIZE_REDUCTION_FACTOR=${CHUNK_SIZE_REDUCTION_FACTOR}
+      - CHUNK_SIZE_INCREASE_FACTOR=${CHUNK_SIZE_INCREASE_FACTOR}
+      - STABLE_MEMORY_THRESHOLD=${STABLE_MEMORY_THRESHOLD}
+      - MEMORY_CHECK_INTERVAL_MS=${MEMORY_CHECK_INTERVAL_MS}
+      - STABLE_MEMORY_DELTA=${STABLE_MEMORY_DELTA}
+    labels:
+      - 'vector.dev/source=nestjs_app_staging_logs'
+    depends_on:
+      - postgres_db
+      - redis_service
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:${PORT:-4000}/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  vector:
+    image: timberio/vector:latest-alpine
+    container_name: vector_log_forwarder_staging
+    restart: unless-stopped
+    networks:
+      - filo_staging_network
+    volumes:
+      - ./vector.toml:/etc/vector/vector.toml:ro # Assumes vector config is in deployment dir
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - LOKI_ENDPOINT=${LOKI_ENDPOINT}
+      - GRAFANA_CLOUD_USER_ID=${GRAFANA_CLOUD_USER_ID}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+      - NODE_ENV=staging
+      - SERVICE_NAME=filo-vector-staging # Renamed for clarity
+    depends_on:
+      - nestjs_app
+
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: filo_postgres_db_staging
+    restart: unless-stopped
+    networks:
+      - filo_staging_network
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-filouser_staging}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-filopassword_staging}
+      - POSTGRES_DB=${POSTGRES_DB:-filodb_staging}
+    # ports:
+    # Typically not exposed directly in staging, similar to prod.
+    # - "5434:5432" # If direct access needed, use a different host port.
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-filouser_staging} -d ${POSTGRES_DB:-filodb_staging}'
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis_service:
+    image: redis:7-alpine
+    container_name: filo_redis_service_staging
+    restart: unless-stopped
+    networks:
+      - filo_staging_network
+    volumes:
+      - redis_data_staging:/data
+    # command: redis-server --save 60 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    # ports:
+    # Typically not exposed directly in staging.
+    # - "6381:6379" # If direct access needed, use a different host port.
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_staging
+    restart: unless-stopped
+    networks:
+      - filo_staging_network
+    ports:
+      - '9092:9090' # Staging on 9092 to avoid host port conflict
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro # Can use a prometheus.staging.yml if needed
+      - prometheus_data_staging:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - nestjs_app
+
+volumes:
+  postgres_data_staging:
+    driver: local
+  redis_data_staging:
+    driver: local
+  prometheus_data_staging:
+    driver: local
+
+networks:
+  filo_staging_network:
+    driver: bridge

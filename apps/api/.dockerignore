@@ -1,0 +1,33 @@
+# Docker ignore for apps/api
+
+# Node.js build artifacts and dependencies from within this app's context
+node_modules
+dist
+deploy # Output of pnpm deploy if run locally before Docker build
+
+# PNPM debug logs specific to this app
+*.log
+
+# Turbo repo cache specific to this app if any
+.turbo
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Environment files (except example) for this specific app
+.env
+.env.*
+!.env.example
+
+# Test reports or coverage generated within this app
+coverage
+junit.xml
+
+# IDE and editor specific files (less critical here if context is tight)
+# .vscode
+# .idea
+
+# Root .dockerignore
+**/node_modules
+.git

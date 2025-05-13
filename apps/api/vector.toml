@@ -1,0 +1,80 @@
+# vector.toml
+
+# Sources: Where Vector collects data from
+[sources.nestjs_app_logs]
+type = "docker_logs" # Collects logs from Docker containers
+# Automatically discover containers with this label.
+# You'll need to add this label to your NestJS application's Docker container.
+docker_config_label = "vector.dev/source"
+# Alternatively, specify container names directly:
+# include_containers = ["my_nestjs_app_container_name"]
+
+# Add more specific Docker discovery options if needed, e.g., based on image name
+# include_images = ["your_nestjs_app_image_name"]
+
+# The logs from NestJS (via pino-http) are already structured JSON.
+# Vector's docker_logs source typically handles this well.
+# If further parsing or decoding is needed, you might add:
+# decoding.codec = "json"
+
+# Transforms: Modify or filter logs
+[transforms.log_sampler]
+type = "sample"
+inputs = ["nestjs_app_logs"]
+# Rate must be an integer >= 1. 
+# Example: rate = 10 keeps 1 out of 10 logs.
+# To make this configurable per environment, you might need to use different
+# Vector config files or manage this value externally if direct env var to int cast isn't supported for this field.
+rate = 1 # Default to no sampling. Change to a higher integer (e.g., 10) to enable sampling.
+
+# For more complex sampling (e.g., never sample errors):
+# condition = ".level != \"error\"" # This would only sample non-errors; apply to the sampler itself.
+# Alternatively, use a 'filter' transform before the sampler.
+
+# Sinks: Where Vector sends data to
+[sinks.loki_output]
+type = "loki"
+inputs = ["log_sampler"] # Input from the sampler transform
+# Endpoint for Grafana Cloud Loki. Use environment variable.
+endpoint = "${LOKI_ENDPOINT}"
+# Example: "https://logs-prod-us-central1.grafana.net/loki/api/v1/push"
+
+# Healthcheck for the sink (optional but recommended)
+# healthcheck.enabled = true 
+
+# Authentication for Grafana Cloud Loki
+# Uses Basic Auth: User ID as username, API Key as password. Use environment variables.
+auth.strategy = "basic"
+auth.user = "${GRAFANA_CLOUD_USER_ID}"
+auth.password = "${GRAFANA_CLOUD_API_KEY}"
+
+# Labels to send to Loki. These are crucial for querying logs in Grafana.
+# Use environment variables with defaults.
+labels.source = "{{ source_type }}_{{ source_name }}"
+labels.service = "${SERVICE_NAME:-filo-api}"
+labels.environment = "${NODE_ENV:-development}"
+labels.level = "{{ level }}"
+
+# Encoding: Logs from NestJS/Pino are already JSON.
+encoding.codec = "json"
+# `remove_field_timestamp = true` can be used if your JSON logs already have a root-level `timestamp` field
+# and you don't want Loki or Vector to add another one or try to parse it from `message`.
+# Pino logs typically have `time` (milliseconds) or a formatted timestamp if configured.
+# Loki prefers RFC3339 format if it is to parse a timestamp from the log line itself.
+# If your Pino logs are structured JSON with a `time` field (unix ms), Loki might pick it up.
+# For best results, ensure your NestJS JSON output has a root-level timestamp field in RFC3339 format if possible,
+# or let Loki/Vector assign one.
+
+# Buffer configuration
+[sinks.loki_output.buffer]
+type = "memory"     # Use "disk" for higher resilience, e.g., type = "disk", max_size = 1073741824 (1GB)
+max_events = 5000   # Max events to buffer in memory (if type="memory")
+when_full = "block" # Or "drop_newest". "block" will exert backpressure.
+
+# Retry / Backoff configuration for requests to Loki
+[sinks.loki_output.request]
+timeout_secs = 10              # Timeout for requests to Loki
+retry_attempts = 5             # Number of retry attempts
+retry_initial_backoff_secs = 1
+retry_max_backoff_secs = 10
+# concurrency = "adaptive" # Can help manage request load

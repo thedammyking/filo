@@ -1,0 +1,150 @@
+services:
+  nestjs_app:
+    container_name: filo_api_service_dev
+    build:
+      context: ../../.. # Path to the monorepo root from apps/api/deployment
+      dockerfile: apps/api/Dockerfile # Path to Dockerfile relative to the monorepo root
+      target: builder # Use the builder stage for development (includes devDependencies)
+    command: pnpm run dev # Use the development script with hot-reloading
+    working_dir: /usr/src/app/apps/api # Set working directory to the app's root
+    restart: 'no' # Don't automatically restart in dev to inspect logs on failure
+    networks:
+      - filo_dev_network
+    ports:
+      - '${API_HOST_PORT:-4000}:${PORT:-4000}'
+    environment:
+      - NODE_ENV=development
+      - NODE_OPTIONS=--max-old-space-size=4096 # Increase memory limit
+      - PORT=${PORT:-4000}
+      - SERVICE_NAME=filo-api-dev
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_db:5432/${POSTGRES_DB}
+      - REDIS_HOST=redis_service
+      - REDIS_PORT=6379
+      # - REDIS_PASSWORD=${REDIS_PASSWORD} # If Redis password is set
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY} # Use dev-specific keys if different
+      - CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      # Vector/Loki env vars might not be needed or could point to a dev Loki instance
+      - LOKI_ENDPOINT=${LOKI_ENDPOINT}
+      - GRAFANA_CLOUD_USER_ID=${GRAFANA_CLOUD_USER_ID}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+      - THROTTLE_TTL=${THROTTLE_TTL} # Added for rate limiting
+      - THROTTLE_LIMIT=${THROTTLE_LIMIT} # Added for rate limiting
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - MEMORY_WARNING_THRESHOLD=${MEMORY_WARNING_THRESHOLD}
+      - MEMORY_CRITICAL_THRESHOLD=${MEMORY_CRITICAL_THRESHOLD}
+      - MEMORY_MAX_THRESHOLD=${MEMORY_MAX_THRESHOLD}
+      - CHUNK_SIZE_DEFAULT=${CHUNK_SIZE_DEFAULT}
+      - CHUNK_SIZE_MIN=${CHUNK_SIZE_MIN}
+      - CHUNK_SIZE_MAX=${CHUNK_SIZE_MAX}
+      - CHUNK_SIZE_REDUCTION_FACTOR=${CHUNK_SIZE_REDUCTION_FACTOR}
+      - CHUNK_SIZE_INCREASE_FACTOR=${CHUNK_SIZE_INCREASE_FACTOR}
+      - STABLE_MEMORY_THRESHOLD=${STABLE_MEMORY_THRESHOLD}
+      - MEMORY_CHECK_INTERVAL_MS=${MEMORY_CHECK_INTERVAL_MS}
+      - STABLE_MEMORY_DELTA=${STABLE_MEMORY_DELTA}
+    labels:
+      - 'vector.dev/source=nestjs_app_dev_logs'
+    volumes:
+      # Mount source code from host into the container for hot-reloading during development.
+      # This overwrites the code copied in the Dockerfile's builder stage, but node_modules remain from the image.
+      - ../../../apps/api:/usr/src/app/apps/api
+      - ../../../packages:/usr/src/app/packages
+      # Mount config files needed by pnpm/turborepo that live at the monorepo root.
+      - ../../../package.json:/usr/src/app/package.json
+      - ../../../pnpm-lock.yaml:/usr/src/app/pnpm-lock.yaml
+      - ../../../pnpm-workspace.yaml:/usr/src/app/pnpm-workspace.yaml
+      # Note: node_modules are NOT mounted from the host. They come from the 'builder' stage image layer,
+      # ensuring consistency with the Docker build environment.
+    depends_on:
+      - postgres_db
+      - redis_service
+
+  vector:
+    image: timberio/vector:latest-alpine
+    container_name: vector_log_forwarder_dev
+    restart: unless-stopped
+    networks:
+      - filo_dev_network
+    volumes:
+      - ../../../apps/api/vector.toml:/etc/vector/vector.toml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - LOKI_ENDPOINT=${LOKI_ENDPOINT} # Point to dev Loki or leave blank
+      - GRAFANA_CLOUD_USER_ID=${GRAFANA_CLOUD_USER_ID}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+      - NODE_ENV=development
+      - SERVICE_NAME=filo-vector-dev # Renamed for clarity
+    depends_on:
+      - nestjs_app
+
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: filo_postgres_db_dev
+    restart: unless-stopped
+    networks:
+      - filo_dev_network
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-filouser_dev}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-filopassword_dev}
+      - POSTGRES_DB=${POSTGRES_DB:-filodb_dev}
+    ports:
+      # Exposed for direct access during development; consider security for shared dev environments.
+      - '5433:5432' # Mapping to 5433 on host to avoid conflict if prod/staging DB also exposed on 5432
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-filouser_dev} -d ${POSTGRES_DB:-filodb_dev}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis_service:
+    image: redis:7-alpine
+    container_name: filo_redis_service_dev
+    restart: unless-stopped
+    networks:
+      - filo_dev_network
+    volumes:
+      - redis_data_dev:/data
+    ports:
+      # Exposed for direct access during development.
+      - '6380:6379' # Mapping to 6380 on host to avoid conflict
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_dev
+    restart: unless-stopped
+    networks:
+      - filo_dev_network
+    ports:
+      - '9091:9090' # Dev on 9091 to avoid host port conflict
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data_dev:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - nestjs_app
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+  prometheus_data_dev:
+    driver: local
+
+networks:
+  filo_dev_network:
+    driver: bridge

@@ -44,53 +44,67 @@ export class TorrentWorkerService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     try {
+      console.log('[TorrentWorkerService] onModuleInit started');
       await this.initializeWorker();
+      console.log('[TorrentWorkerService] onModuleInit completed');
     } catch (error) {
-      this.logger.error('Failed to initialize torrent worker:', error);
+      console.error(
+        '[TorrentWorkerService] Failed to initialize torrent worker in onModuleInit:',
+        error
+      );
       throw error;
     }
   }
 
   private async initializeWorker() {
+    console.log('[TorrentWorkerService] initializeWorker started');
     const workerPath = join(process.cwd(), 'src', 'modules', 'torrent', 'torrent.worker.mjs');
-    this.logger.log(`Initializing worker at path: ${workerPath}`);
+    console.log(`[TorrentWorkerService] Attempting to initialize worker from path: ${workerPath}`);
 
     this.worker = new Worker(workerPath);
+    console.log('[TorrentWorkerService] Worker instance created.');
 
     this.worker.on('message', message => {
       const { type, data } = message;
-      this.logger.debug(`Received worker message: ${type}`, data);
+      // console.debug(`[TorrentWorkerService] Received worker message: ${type}`, data); // Keep logger for debug level
       this.eventEmitter.emit(type, data);
     });
 
     this.worker.on('error', error => {
-      this.logger.error('Worker error:', error);
+      console.error('[TorrentWorkerService] Worker error event:', error);
       this.eventEmitter.emit('TORRENT_ERROR', { error: error.message });
       this.isWorkerReady = false;
     });
 
     this.worker.on('exit', code => {
+      console.log(`[TorrentWorkerService] Worker exit event with code: ${code}`);
       if (code !== 0) {
-        this.logger.error(`Worker stopped with exit code ${code}`);
+        console.error(`[TorrentWorkerService] Worker stopped with non-zero exit code ${code}`);
       }
       this.worker = null;
       this.isWorkerReady = false;
     });
 
+    console.log('[TorrentWorkerService] Attaching Promise for WORKER_READY event.');
     // Wait for worker to be ready
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
+        console.error(
+          `[TorrentWorkerService] Worker initialization timed out after 30 seconds for path: ${workerPath}`
+        );
         reject(new Error('Worker initialization timeout'));
-      }, 5000);
+      }, 30000);
 
       this.worker!.on('message', message => {
         if (message.type === 'WORKER_READY') {
+          console.log('[TorrentWorkerService] WORKER_READY message received.');
           clearTimeout(timeout);
           this.isWorkerReady = true;
           resolve();
         }
       });
     });
+    console.log('[TorrentWorkerService] Worker is ready.');
   }
 
   async addTorrent(magnetURI: string): Promise<{

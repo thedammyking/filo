@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s # Default scrape interval
+  evaluation_interval: 15s # Default evaluation interval for rules
+
+# Alertmanager configuration (optional, can be added later if needed)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+# rule_files:
+#   - "first_rules.yml"
+#   - "second_rules.yml"
+
+scrape_configs:
+  - job_name: 'nestjs-api'
+    scrape_interval: 15s # Can override global interval
+    # For Docker Compose, service discovery or static_configs can be used.
+    # If Prometheus is on the same Docker network as nestjs_app:
+    static_configs:
+      - targets:
+          ['nestjs_app:4000'] # Default service name and port for NestJS app
+          # This will be 'nestjs_app:PORT' (e.g. nestjs_app:4000)
+          # Ensure PORT matches the one your app runs on inside the container.
+    metrics_path: /api/v1/metrics # The endpoint you exposed in NestJS for Prometheus metrics
+    # scheme: http # Default, can be https if app metrics are served over https internally
+
+  - job_name: 'node-exporter'
+    scrape_interval: 10s
+    static_configs:
+      # This target needs to be the IP address of your Hetzner server where node_exporter is running,
+      # and the port node_exporter is listening on (default 9100).
+      # If Prometheus is running on the same host as node_exporter (but Prometheus in Docker),
+      # you might use 'host.docker.internal:9100' (on Docker Desktop, varies on Linux)
+      # or the host's IP on the Docker bridge network.
+      # For a server, use its network IP accessible by Prometheus.
+      - targets: ['YOUR_HETZNER_SERVER_IP:9100'] # <<< REPLACE THIS PLACEHOLDER
+
+
+  # Example for scraping Prometheus itself (optional)
+  # - job_name: 'prometheus'
+  #   scrape_interval: 10s
+  #   static_configs:
+  #     - targets: ['localhost:9090']
